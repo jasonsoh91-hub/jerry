@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(mv jerry-dashboard/* .)",
+      "Bash(mv jerry-dashboard/.* .)",
+      "Bash(rmdir jerry-dashboard:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(git init:*)",
+      "Bash(git:*)"
+    ]
+  }
+}
