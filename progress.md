@@ -53,8 +53,8 @@
 - [ ] Implement additional export formats (PDF, SVG)
 
 ### Deployment
-- [ ] Initialize git repository
-- [ ] Push to GitHub (jasonsoh91-hub/jerry)
+- [x] Initialize git repository ✅
+- [x] Push to GitHub (jasonsoh91-hub/jerry) ✅
 - [ ] Configure GitHub Pages or Vercel deployment
 - [ ] Set up CI/CD pipeline
 
