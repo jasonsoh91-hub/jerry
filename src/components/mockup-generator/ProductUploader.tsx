@@ -98,8 +98,11 @@ export default function ProductUploader({ onImageSelect, selectedImage }: Produc
               <p className="text-gray-700 mb-2">
                 Drag & drop your product image here
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 mb-2">
                 Supports JPG, PNG, WebP (max 10MB)
+              </p>
+              <p className="text-xs text-blue-600">
+                💡 AI will automatically remove the background
               </p>
             </div>
           )}

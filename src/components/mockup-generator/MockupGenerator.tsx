@@ -30,13 +30,25 @@ export default function MockupGenerator() {
       const generated = await generateMockups(
         productImage,
         frameImages,
-        (p) => setProgress(p)
+        (p) => {
+          setProgress(p);
+          // Show detailed progress to user
+          if (p.percentage < 20) {
+            setProgress({ ...p, stage: '🎨 Removing background with AI...' });
+          } else if (p.percentage < 40) {
+            setProgress({ ...p, stage: '📐 Analyzing frame templates...' });
+          } else if (p.percentage < 80) {
+            setProgress({ ...p, stage: '✨ Generating mockup variations...' });
+          } else {
+            setProgress({ ...p, stage: '🎉 Finalizing mockups...' });
+          }
+        }
       );
       setMockups(generated);
     } catch (err) {
       console.error('Generation failed:', err);
       setError(
-        'Failed to generate mockups. Please check your images and try again.'
+        'Failed to generate mockups. Please try with different images or smaller file sizes.'
       );
     } finally {
       setIsGenerating(false);

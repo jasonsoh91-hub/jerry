@@ -131,15 +131,64 @@ export function centerProduct(
 }
 
 /**
+ * Simple background removal using color detection (fallback)
+ * Removes white or similar colored backgrounds
+ */
+export function simpleBackgroundRemoval(img: HTMLImageElement): HTMLImageElement {
+  const canvas = document.createElement('canvas');
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext('2d')!;
+
+  ctx.drawImage(img, 0, 0);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+
+  // Simple white background removal
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+
+    // If pixel is very light/white, make it transparent
+    if (r > 240 && g > 240 && b > 240) {
+      data[i + 3] = 0; // Set alpha to 0 (transparent)
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+
+  const newImg = new Image();
+  newImg.src = canvas.toDataURL('image/png');
+  return newImg;
+}
+
+/**
  * Process product image: remove background and center product
  */
 export async function processProductImage(file: File): Promise<ProductImage> {
   // 1. Load image from file
   const img = await loadImage(file);
 
-  // 2. Remove background using @imgly/background-removal
-  const blob = await removeBackground(img.src);
-  const processedImg = await loadImageFromBlob(blob);
+  // 2. Try to remove background, with fallbacks
+  let processedImg: HTMLImageElement;
+  try {
+    console.log('Attempting AI background removal...');
+    const blob = await removeBackground(img.src);
+    processedImg = await loadImageFromBlob(blob);
+    console.log('AI background removal successful!');
+  } catch (error) {
+    console.warn('AI background removal failed, trying simple fallback:', error);
+    try {
+      // Fallback to simple white background removal
+      processedImg = simpleBackgroundRemoval(img);
+      console.log('Simple background removal successful!');
+    } catch (fallbackError) {
+      console.warn('Simple background removal failed, using original image:', fallbackError);
+      // Final fallback: use original image
+      processedImg = img;
+    }
+  }
 
   // 3. Detect product bounds
   const bounds = detectProductBounds(processedImg);
