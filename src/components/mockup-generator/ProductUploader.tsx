@@ -25,6 +25,13 @@ export default function ProductUploader({ onImageSelect, selectedImage }: Produc
       if (acceptedFiles.length > 0) {
         const file = acceptedFiles[0];
 
+        // Log file info for debugging
+        console.log('Product image uploaded:', {
+          name: file.name,
+          type: file.type,
+          size: file.size
+        });
+
         // Validate file size (max 10MB)
         if (file.size > 10 * 1024 * 1024) {
           setError('File size must be less than 10MB');

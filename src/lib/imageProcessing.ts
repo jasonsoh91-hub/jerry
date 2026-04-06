@@ -12,6 +12,12 @@ export async function loadImage(file: File): Promise<HTMLImageElement> {
     const url = URL.createObjectURL(file);
 
     img.onload = () => {
+      // Validate image dimensions
+      if (!img.width || !img.height || img.width <= 0 || img.height <= 0) {
+        URL.revokeObjectURL(url);
+        reject(new Error('Image has invalid dimensions'));
+        return;
+      }
       URL.revokeObjectURL(url);
       resolve(img);
     };
@@ -144,12 +150,27 @@ export function centerProduct(
  * Removes white or similar colored backgrounds
  */
 export async function simpleBackgroundRemoval(img: HTMLImageElement): Promise<HTMLImageElement> {
+  // Validate input image
+  if (!img.width || !img.height || img.width <= 0 || img.height <= 0) {
+    throw new Error('Invalid image dimensions for background removal');
+  }
+
   const canvas = document.createElement('canvas');
   canvas.width = img.width;
   canvas.height = img.height;
   const ctx = canvas.getContext('2d')!;
 
+  if (!ctx) {
+    throw new Error('Failed to get canvas context');
+  }
+
   ctx.drawImage(img, 0, 0);
+
+  // Validate canvas was created properly
+  if (canvas.width === 0 || canvas.height === 0) {
+    throw new Error('Canvas has invalid dimensions');
+  }
+
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;
 
@@ -170,7 +191,14 @@ export async function simpleBackgroundRemoval(img: HTMLImageElement): Promise<HT
   // Create and wait for image to load
   return new Promise((resolve, reject) => {
     const newImg = new Image();
-    newImg.onload = () => resolve(newImg);
+    newImg.onload = () => {
+      // Validate the new image has valid dimensions
+      if (!newImg.width || !newImg.height || newImg.width <= 0 || newImg.height <= 0) {
+        reject(new Error('Processed image has invalid dimensions'));
+      } else {
+        resolve(newImg);
+      }
+    };
     newImg.onerror = () => reject(new Error('Failed to create processed image'));
     newImg.src = canvas.toDataURL('image/png');
   });
@@ -180,8 +208,17 @@ export async function simpleBackgroundRemoval(img: HTMLImageElement): Promise<HT
  * Process product image: remove background and center product
  */
 export async function processProductImage(file: File): Promise<ProductImage> {
+  console.log('Processing product image:', file.name, file.size, file.type);
+
   // 1. Load image from file
-  const img = await loadImage(file);
+  let img: HTMLImageElement;
+  try {
+    img = await loadImage(file);
+    console.log('✓ Image loaded successfully:', img.width, 'x', img.height);
+  } catch (error) {
+    console.error('✗ Failed to load image:', error);
+    throw new Error('Failed to load product image. Please try a different file.');
+  }
 
   // Validate image dimensions
   if (!img.width || !img.height || img.width <= 0 || img.height <= 0) {
@@ -196,29 +233,38 @@ export async function processProductImage(file: File): Promise<ProductImage> {
     console.log('Attempting AI background removal...');
     const blob = await removeBackground(img.src);
     processedImg = await loadImageFromBlob(blob);
-    console.log('AI background removal successful!');
+    console.log('✓ AI background removal successful!');
   } catch (error) {
-    console.warn('AI background removal failed, trying simple fallback:', error);
+    console.warn('✗ AI background removal failed, trying simple fallback:', error);
     try {
       // Fallback to simple white background removal (now async)
       processedImg = await simpleBackgroundRemoval(img);
-      console.log('Simple background removal successful!');
+      console.log('✓ Simple background removal successful!');
     } catch (fallbackError) {
-      console.warn('Simple background removal failed, using original image:', fallbackError);
+      console.warn('✗ Simple background removal failed, using original image:', fallbackError);
       // Final fallback: use original image
       processedImg = img;
+      console.log('✓ Using original image');
     }
   }
 
   // Validate processed image has valid dimensions
   if (!processedImg.width || !processedImg.height || processedImg.width <= 0 || processedImg.height <= 0) {
+    console.error('✗ Processed image has invalid dimensions');
     throw new Error('Processed image has invalid dimensions');
   }
 
   console.log(`Processed image: ${processedImg.width}x${processedImg.height}`);
 
   // 3. Detect product bounds
-  const bounds = detectProductBounds(processedImg);
+  let bounds: { width: number; height: number; x: number; y: number };
+  try {
+    bounds = detectProductBounds(processedImg);
+    console.log('✓ Product bounds detected:', bounds);
+  } catch (error) {
+    console.error('✗ Failed to detect product bounds:', error);
+    throw new Error('Failed to detect product bounds. Please try a clearer image.');
+  }
 
   // 4. Center product with padding
   const centered = centerProduct(processedImg, bounds, 0.2);
@@ -231,6 +277,8 @@ export async function processProductImage(file: File): Promise<ProductImage> {
       centered.onload = () => resolve(centered);
     }
   });
+
+  console.log('✓ Image processing complete');
 
   return {
     original: file,

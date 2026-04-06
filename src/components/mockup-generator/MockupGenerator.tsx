@@ -47,8 +47,9 @@ export default function MockupGenerator() {
       setMockups(generated);
     } catch (err) {
       console.error('Generation failed:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(
-        'Failed to generate mockups. Please try with different images or smaller file sizes.'
+        `Failed to generate mockups: ${errorMessage}\n\nTips:\n• Use clear images with good lighting\n• Try PNG or JPG format instead of WebP\n• Use images with white/light backgrounds\n• Keep file sizes under 5MB`
       );
     } finally {
       setIsGenerating(false);
