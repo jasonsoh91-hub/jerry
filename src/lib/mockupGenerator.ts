@@ -5,52 +5,53 @@ import { processProductImage, analyzeFrame, compositeProductIntoFrame } from './
 
 /**
  * Configuration for the 5 automatic variations
+ * Scales are relative to filling the product area (1.0 = fills area)
  */
 export const VARIATION_CONFIGS: VariationConfig[] = [
   {
     id: 'standard',
-    name: 'Standard Center',
-    scale: 0.5,
+    name: 'Standard Fit',
+    scale: 1.0,
     position: { x: 0.5, y: 0.5 },
     rotation: 0,
-    description: 'Classic centered product placement'
+    description: 'Fills the product area completely'
   },
   {
     id: 'closeup',
     name: 'Large Close-up',
-    scale: 0.7,
+    scale: 1.15,
     position: { x: 0.5, y: 0.5 },
     rotation: 0,
     shadow: { blur: 20, opacity: 0.3, offsetY: 10 },
-    description: 'Emphasized product size'
+    description: 'Slightly larger, emphasized view'
   },
   {
     id: 'offset',
-    name: 'Offset Composition',
-    scale: 0.6,
-    position: { x: 0.4, y: 0.5 },
+    name: 'Offset Position',
+    scale: 0.95,
+    position: { x: 0.45, y: 0.5 },
     rotation: 0,
     shadow: { blur: 15, opacity: 0.2, offsetY: 8 },
-    description: 'Artistic off-center placement'
+    description: 'Slightly off-center placement'
   },
   {
     id: 'tilted',
-    name: 'Tilted Perspective',
-    scale: 0.55,
+    name: 'Angled View',
+    scale: 0.9,
     position: { x: 0.5, y: 0.5 },
-    rotation: 7,
+    rotation: 5,
     shadow: { blur: 25, opacity: 0.4, offsetY: 15 },
-    description: 'Dynamic angled view'
+    description: 'Subtle angle for depth'
   },
   {
     id: 'enhanced',
-    name: 'Enhanced Lighting',
-    scale: 0.5,
+    name: 'Enhanced Style',
+    scale: 1.0,
     position: { x: 0.5, y: 0.5 },
     rotation: 0,
     shadow: { blur: 20, opacity: 0.3, offsetY: 10 },
-    lighting: { brightness: 1.1, contrast: 1.15, vignette: true },
-    description: 'Professional lighting effects'
+    lighting: { brightness: 1.05, contrast: 1.1, vignette: true },
+    description: 'Polished with lighting effects'
   }
 ];
 

@@ -108,8 +108,8 @@ export default function ProductUploader({ onImageSelect, selectedImage }: Produc
               <p className="text-sm text-gray-500 mb-2">
                 Supports JPG, PNG, WebP (max 10MB)
               </p>
-              <p className="text-xs text-gray-400">
-                💡 For best results, use images with simple backgrounds
+              <p className="text-xs text-blue-600">
+                💡 Background will be removed automatically
               </p>
             </div>
           )}

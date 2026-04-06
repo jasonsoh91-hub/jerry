@@ -225,18 +225,31 @@ export async function processProductImage(file: File): Promise<ProductImage> {
     throw new Error('Invalid image: image has no dimensions');
   }
 
-  console.log(`Using original image: ${img.width}x${img.height}`);
+  // 2. Remove background - try multiple approaches
+  let processedImg: HTMLImageElement;
+  try {
+    console.log('Attempting background removal...');
+    processedImg = await simpleBackgroundRemoval(img);
+    console.log('✓ Background removal successful');
+  } catch (error) {
+    console.warn('✗ Background removal failed, using original:', error);
+    processedImg = img;
+  }
 
-  // Use the original image without background removal (much more reliable!)
-  const processedImg = img;
-
-  // Create bounds for the entire image
-  const bounds = {
-    width: img.width,
-    height: img.height,
-    x: 0,
-    y: 0
-  };
+  // 3. Detect product bounds (find actual content)
+  let bounds: { width: number; height: number; x: number; y: number };
+  try {
+    bounds = detectProductBounds(processedImg);
+    console.log('✓ Product bounds detected:', bounds);
+  } catch (error) {
+    console.warn('✗ Could not detect bounds, using full image:', error);
+    bounds = {
+      width: processedImg.width,
+      height: processedImg.height,
+      x: 0,
+      y: 0
+    };
+  }
 
   console.log('✓ Image processing complete');
 
@@ -248,19 +261,84 @@ export async function processProductImage(file: File): Promise<ProductImage> {
 }
 
 /**
- * Analyze frame image to determine safe zone and dimensions
+ * Analyze frame image to find the product placement area
+ * Detects the largest transparent or empty region in the frame
  */
 export async function analyzeFrame(frameImg: HTMLImageElement): Promise<FrameAnalysis> {
   const width = frameImg.width;
   const height = frameImg.height;
 
-  // Calculate safe zone (center 60% of frame)
-  const safeZone = {
-    x: width * 0.2,
-    y: height * 0.2,
-    width: width * 0.6,
-    height: height * 0.6
+  // Create canvas to analyze the frame
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d')!;
+
+  ctx.drawImage(frameImg, 0, 0);
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+
+  // Find the largest empty/transparent region
+  let largestEmptyRegion = {
+    x: 0,
+    y: 0,
+    width: width,
+    height: height
   };
+
+  // Simple approach: divide image into regions and find the most transparent one
+  const regions = 4; // 4x4 grid
+  const regionWidth = width / regions;
+  const regionHeight = height / regions;
+
+  let maxTransparency = 0;
+  let bestRegion = { x: 0, y: 0, width: regionWidth, height: regionHeight };
+
+  for (let gridY = 0; gridY < regions; gridY++) {
+    for (let gridX = 0; gridX < regions; gridX++) {
+      let transparentPixels = 0;
+      let totalPixels = 0;
+
+      const startX = Math.floor(gridX * regionWidth);
+      const startY = Math.floor(gridY * regionHeight);
+      const endX = Math.floor((gridX + 1) * regionWidth);
+      const endY = Math.floor((gridY + 1) * regionHeight);
+
+      for (let y = startY; y < endY; y++) {
+        for (let x = startX; x < endX; x++) {
+          const i = (y * width + x) * 4;
+          const alpha = data[i + 3];
+
+          // Count transparent or very light pixels
+          if (alpha < 128 || (data[i] > 240 && data[i + 1] > 240 && data[i + 2] > 240)) {
+            transparentPixels++;
+          }
+          totalPixels++;
+        }
+      }
+
+      const transparency = transparentPixels / totalPixels;
+      if (transparency > maxTransparency) {
+        maxTransparency = transparency;
+        bestRegion = {
+          x: startX,
+          y: startY,
+          width: endX - startX,
+          height: endY - startY
+        };
+      }
+    }
+  }
+
+  // Expand the best region slightly for better fit
+  const safeZone = {
+    x: bestRegion.x,
+    y: bestRegion.y,
+    width: bestRegion.width,
+    height: bestRegion.height
+  };
+
+  console.log('Frame analysis - Product area:', safeZone);
 
   return {
     width,
@@ -310,6 +388,7 @@ export function applyLightingEffects(
 
 /**
  * Composite product into frame with specified configuration
+ * Scales product to fill the product area in the frame
  */
 export function compositeProductIntoFrame(
   product: HTMLImageElement,
@@ -326,14 +405,34 @@ export function compositeProductIntoFrame(
   // 2. Draw frame
   ctx.drawImage(frame, 0, 0);
 
-  // 3. Calculate product placement
-  const scale = config.scale;
+  // 3. Calculate scale to fill the product area (safe zone)
+  const safeZone = frameAnalysis.safeZone;
+  const productAreaWidth = safeZone.width;
+  const productAreaHeight = safeZone.height;
+
+  // Scale product to fill the product area (with some padding)
+  const padding = 0.9; // Use 90% of the area
+  const scaleX = (productAreaWidth * padding) / product.width;
+  const scaleY = (productAreaHeight * padding) / product.height;
+
+  // Use the smaller scale to ensure product fits entirely
+  let scale = Math.min(scaleX, scaleY);
+
+  // Apply variation-specific scale modifier
+  scale = scale * config.scale;
+
+  // 4. Calculate position to center product in the product area
   const productWidth = product.width * scale;
   const productHeight = product.height * scale;
-  const x = (frame.width - productWidth) * config.position.x;
-  const y = (frame.height - productHeight) * config.position.y;
 
-  // 4. Apply shadow if configured
+  // Center in the product area, then apply position offset
+  const centerX = safeZone.x + (safeZone.width - productWidth) / 2;
+  const centerY = safeZone.y + (safeZone.height - productHeight) / 2;
+
+  const x = centerX + (safeZone.width - productWidth) * (config.position.x - 0.5);
+  const y = centerY + (safeZone.height - productHeight) * (config.position.y - 0.5);
+
+  // 5. Apply shadow if configured
   if (config.shadow) {
     ctx.save();
     ctx.shadowColor = `rgba(0, 0, 0, ${config.shadow.opacity})`;
@@ -341,7 +440,7 @@ export function compositeProductIntoFrame(
     ctx.shadowOffsetY = config.shadow.offsetY;
   }
 
-  // 5. Apply rotation if configured
+  // 6. Apply rotation if configured
   if (config.rotation !== 0) {
     ctx.save();
     ctx.translate(x + productWidth / 2, y + productHeight / 2);
@@ -356,7 +455,7 @@ export function compositeProductIntoFrame(
     ctx.restore();
   }
 
-  // 6. Apply lighting effects if configured
+  // 7. Apply lighting effects if configured
   if (config.lighting) {
     applyLightingEffects(ctx, canvas, config.lighting);
   }

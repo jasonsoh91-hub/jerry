@@ -33,11 +33,11 @@ export default function MockupGenerator() {
         (p) => {
           setProgress(p);
           // Show detailed progress to user
-          if (p.percentage < 30) {
-            setProgress({ ...p, stage: '📐 Processing product image...' });
-          } else if (p.percentage < 50) {
-            setProgress({ ...p, stage: '🎨 Analyzing frame templates...' });
-          } else if (p.percentage < 90) {
+          if (p.percentage < 25) {
+            setProgress({ ...p, stage: '🎨 Removing background & detecting product...' });
+          } else if (p.percentage < 40) {
+            setProgress({ ...p, stage: '📐 Analyzing frame product areas...' });
+          } else if (p.percentage < 85) {
             setProgress({ ...p, stage: '✨ Generating mockup variations...' });
           } else {
             setProgress({ ...p, stage: '🎉 Finalizing mockups...' });
