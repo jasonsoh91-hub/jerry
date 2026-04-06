@@ -56,11 +56,22 @@ export function detectProductBounds(img: HTMLImageElement): {
   x: number;
   y: number;
 } {
+  // Validate image dimensions
+  if (!img.width || !img.height || img.width <= 0 || img.height <= 0) {
+    throw new Error('Invalid image dimensions');
+  }
+
   // Create a temporary canvas to analyze pixels
   const canvas = document.createElement('canvas');
   canvas.width = img.width;
   canvas.height = img.height;
+  const ctx = canvas.getContext('2d'!);
+
   const ctx = canvas.getContext('2d')!;
+
+  if (!ctx) {
+    throw new Error('Failed to get canvas context');
+  }
 
   ctx.drawImage(img, 0, 0);
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -134,7 +145,7 @@ export function centerProduct(
  * Simple background removal using color detection (fallback)
  * Removes white or similar colored backgrounds
  */
-export function simpleBackgroundRemoval(img: HTMLImageElement): HTMLImageElement {
+export async function simpleBackgroundRemoval(img: HTMLImageElement): Promise<HTMLImageElement> {
   const canvas = document.createElement('canvas');
   canvas.width = img.width;
   canvas.height = img.height;
@@ -158,9 +169,13 @@ export function simpleBackgroundRemoval(img: HTMLImageElement): HTMLImageElement
 
   ctx.putImageData(imageData, 0, 0);
 
-  const newImg = new Image();
-  newImg.src = canvas.toDataURL('image/png');
-  return newImg;
+  // Create and wait for image to load
+  return new Promise((resolve, reject) => {
+    const newImg = new Image();
+    newImg.onload = () => resolve(newImg);
+    newImg.onerror = () => reject(new Error('Failed to create processed image'));
+    newImg.src = canvas.toDataURL('image/png');
+  });
 }
 
 /**
@@ -169,6 +184,13 @@ export function simpleBackgroundRemoval(img: HTMLImageElement): HTMLImageElement
 export async function processProductImage(file: File): Promise<ProductImage> {
   // 1. Load image from file
   const img = await loadImage(file);
+
+  // Validate image dimensions
+  if (!img.width || !img.height || img.width <= 0 || img.height <= 0) {
+    throw new Error('Invalid image: image has no dimensions');
+  }
+
+  console.log(`Loaded image: ${img.width}x${img.height}`);
 
   // 2. Try to remove background, with fallbacks
   let processedImg: HTMLImageElement;
@@ -180,8 +202,8 @@ export async function processProductImage(file: File): Promise<ProductImage> {
   } catch (error) {
     console.warn('AI background removal failed, trying simple fallback:', error);
     try {
-      // Fallback to simple white background removal
-      processedImg = simpleBackgroundRemoval(img);
+      // Fallback to simple white background removal (now async)
+      processedImg = await simpleBackgroundRemoval(img);
       console.log('Simple background removal successful!');
     } catch (fallbackError) {
       console.warn('Simple background removal failed, using original image:', fallbackError);
@@ -189,6 +211,13 @@ export async function processProductImage(file: File): Promise<ProductImage> {
       processedImg = img;
     }
   }
+
+  // Validate processed image has valid dimensions
+  if (!processedImg.width || !processedImg.height || processedImg.width <= 0 || processedImg.height <= 0) {
+    throw new Error('Processed image has invalid dimensions');
+  }
+
+  console.log(`Processed image: ${processedImg.width}x${processedImg.height}`);
 
   // 3. Detect product bounds
   const bounds = detectProductBounds(processedImg);
