@@ -11,6 +11,7 @@ import type { GeneratedMockup, ProcessingProgress } from '@/lib/types';
 export default function MockupGenerator() {
   const [productImage, setProductImage] = useState<File | null>(null);
   const [frameImages, setFrameImages] = useState<File[]>([]);
+  const [productAreaConfig, setProductAreaConfig] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [mockups, setMockups] = useState<GeneratedMockup[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState<ProcessingProgress>({
@@ -33,16 +34,21 @@ export default function MockupGenerator() {
         (p) => {
           setProgress(p);
           // Show detailed progress to user
-          if (p.percentage < 25) {
+          if (p.percentage < 20) {
             setProgress({ ...p, stage: '🎨 Removing background & detecting product...' });
           } else if (p.percentage < 40) {
             setProgress({ ...p, stage: '📐 Analyzing frame product areas...' });
-          } else if (p.percentage < 85) {
-            setProgress({ ...p, stage: '✨ Generating mockup variations...' });
+          } else if (p.percentage < 60) {
+            setProgress({ ...p, stage: '✨ Generating product mockup...' });
+          } else if (p.percentage < 80) {
+            setProgress({ ...p, stage: '📸 Preparing original product photo...' });
+          } else if (p.percentage < 90) {
+            setProgress({ ...p, stage: '🔄 Creating side view...' });
           } else {
-            setProgress({ ...p, stage: '🎉 Finalizing mockups...' });
+            setProgress({ ...p, stage: '🎉 Finalizing...' });
           }
-        }
+        },
+        productAreaConfig
       );
       setMockups(generated);
     } catch (err) {
@@ -69,6 +75,7 @@ export default function MockupGenerator() {
         <FrameUploader
           onImagesSelect={setFrameImages}
           selectedImages={frameImages}
+          onProductAreaChange={setProductAreaConfig}
         />
       </div>
 

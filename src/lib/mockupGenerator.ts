@@ -4,54 +4,34 @@ import type { VariationConfig, GeneratedMockup, ProcessingProgress } from './typ
 import { processProductImage, analyzeFrame, compositeProductIntoFrame } from './imageProcessing';
 
 /**
- * Configuration for the 5 automatic variations
- * Scales are relative to filling the product area (1.0 = fills area)
+ * Configuration for mockup generation
+ * Scale is relative to filling the product area (1.0 = fills area)
  */
 export const VARIATION_CONFIGS: VariationConfig[] = [
   {
-    id: 'standard',
-    name: 'Standard Fit',
+    id: 'mockup',
+    name: 'Product Mockup',
     scale: 1.0,
     position: { x: 0.5, y: 0.5 },
     rotation: 0,
-    description: 'Fills the product area completely'
+    shadow: { blur: 30, opacity: 0.25, offsetY: 12 },
+    description: 'Professional product mockup with soft shadow'
   },
   {
-    id: 'closeup',
-    name: 'Large Close-up',
-    scale: 1.15,
-    position: { x: 0.5, y: 0.5 },
-    rotation: 0,
-    shadow: { blur: 20, opacity: 0.3, offsetY: 10 },
-    description: 'Slightly larger, emphasized view'
-  },
-  {
-    id: 'offset',
-    name: 'Offset Position',
-    scale: 0.95,
-    position: { x: 0.45, y: 0.5 },
-    rotation: 0,
-    shadow: { blur: 15, opacity: 0.2, offsetY: 8 },
-    description: 'Slightly off-center placement'
-  },
-  {
-    id: 'tilted',
-    name: 'Angled View',
-    scale: 0.9,
-    position: { x: 0.5, y: 0.5 },
-    rotation: 5,
-    shadow: { blur: 25, opacity: 0.4, offsetY: 15 },
-    description: 'Subtle angle for depth'
-  },
-  {
-    id: 'enhanced',
-    name: 'Enhanced Style',
+    id: 'original',
+    name: 'Original Product',
     scale: 1.0,
     position: { x: 0.5, y: 0.5 },
     rotation: 0,
-    shadow: { blur: 20, opacity: 0.3, offsetY: 10 },
-    lighting: { brightness: 1.05, contrast: 1.1, vignette: true },
-    description: 'Polished with lighting effects'
+    description: 'Original product photo with background removed'
+  },
+  {
+    id: 'side-view',
+    name: 'Side View (Right)',
+    scale: 1.0,
+    position: { x: 0.5, y: 0.5 },
+    rotation: -30,
+    description: 'Side view without frame - rotated product only'
   }
 ];
 
@@ -61,9 +41,11 @@ export const VARIATION_CONFIGS: VariationConfig[] = [
 export async function generateMockups(
   productFile: File,
   frameFiles: File[],
-  onProgress?: (progress: ProcessingProgress) => void
+  onProgress?: (progress: ProcessingProgress) => void,
+  productAreaConfig?: { x: number; y: number; width: number; height: number } | null
 ): Promise<GeneratedMockup[]> {
   const mockups: GeneratedMockup[] = [];
+  const frameUrls: string[] = []; // Keep track of URLs to clean up later
 
   try {
     // 1. Process product image (background removal)
@@ -76,10 +58,12 @@ export async function generateMockups(
     const frames = await Promise.all(
       frameFiles.map(async (file) => {
         const img = await loadImage(file);
-        const analysis = await analyzeFrame(img);
+        const analysis = await analyzeFrame(img, productAreaConfig);
         return { file, img, analysis };
       })
     );
+
+    console.log(`✅ Loaded ${frames.length} frame(s) successfully`);
 
     // 3. Generate variations for each frame
     const totalVariations = frames.length * VARIATION_CONFIGS.length;
@@ -92,20 +76,29 @@ export async function generateMockups(
           percentage: 20 + (currentVariation / totalVariations) * 80
         });
 
-        const canvas = compositeProductIntoFrame(
-          product.processed,
-          frame.img,
-          frame.analysis,
-          config
-        );
+        console.log(`\n🎨 Generating variation ${currentVariation + 1}/${totalVariations}: ${config.name}`);
 
-        mockups.push({
-          id: `mockup-${mockups.length + 1}`,
-          canvas,
-          name: config.name,
-          description: config.description,
-          config
-        });
+        try {
+          const canvas = compositeProductIntoFrame(
+            product.processed,
+            frame.img,
+            frame.analysis,
+            config
+          );
+
+          console.log(`✅ Successfully generated variation: ${config.name}`);
+
+          mockups.push({
+            id: `mockup-${mockups.length + 1}`,
+            canvas,
+            name: config.name,
+            description: config.description,
+            config
+          });
+        } catch (error) {
+          console.error(`❌ Failed to generate variation ${config.name}:`, error);
+          throw error; // Re-throw to stop generation
+        }
 
         currentVariation++;
 
@@ -116,6 +109,7 @@ export async function generateMockups(
 
     onProgress?.({ stage: 'Complete!', percentage: 100 });
 
+    console.log(`✅ Generated ${mockups.length} mockup(s) successfully`);
     return mockups;
   } catch (error) {
     console.error('Mockup generation failed:', error);
@@ -125,6 +119,7 @@ export async function generateMockups(
 
 /**
  * Load an image from a File object
+ * Note: Does NOT revoke the URL to keep image in memory for all variations
  */
 async function loadImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -132,7 +127,8 @@ async function loadImage(file: File): Promise<HTMLImageElement> {
     const url = URL.createObjectURL(file);
 
     img.onload = () => {
-      URL.revokeObjectURL(url);
+      // DON'T revoke URL here - keep image loaded for all variations
+      console.log(`✅ Image loaded: ${file.name} (${img.width}x${img.height})`);
       resolve(img);
     };
 

@@ -263,10 +263,41 @@ export async function processProductImage(file: File): Promise<ProductImage> {
 /**
  * Analyze frame image to find the product placement area
  * Detects the largest transparent or empty region in the frame
+ * @param frameImg - The frame image to analyze
+ * @param manualConfig - Optional manual product area configuration (percentages)
  */
-export async function analyzeFrame(frameImg: HTMLImageElement): Promise<FrameAnalysis> {
+export async function analyzeFrame(
+  frameImg: HTMLImageElement,
+  manualConfig?: { x: number; y: number; width: number; height: number } | null
+): Promise<FrameAnalysis> {
   const width = frameImg.width;
   const height = frameImg.height;
+
+  // If manual configuration is provided, use it directly
+  if (manualConfig) {
+    const safeZone = {
+      x: (manualConfig.x / 100) * width,
+      y: (manualConfig.y / 100) * height,
+      width: (manualConfig.width / 100) * width,
+      height: (manualConfig.height / 100) * height
+    };
+
+    console.log('✅ Using MANUAL product area configuration:', manualConfig);
+    console.log('📐 Frame size:', width, 'x', height);
+    console.log('🎯 Calculated safe zone in pixels:', {
+      x: Math.round(safeZone.x),
+      y: Math.round(safeZone.y),
+      width: Math.round(safeZone.width),
+      height: Math.round(safeZone.height)
+    });
+
+    return {
+      width,
+      height,
+      safeZone,
+      aspectRatio: width / height
+    };
+  }
 
   // Create canvas to analyze the frame
   const canvas = document.createElement('canvas');
@@ -389,6 +420,7 @@ export function applyLightingEffects(
 /**
  * Composite product into frame with specified configuration
  * Scales product to fill the product area in the frame
+ * For 'original' config, just returns the product on transparent background
  */
 export function compositeProductIntoFrame(
   product: HTMLImageElement,
@@ -396,22 +428,121 @@ export function compositeProductIntoFrame(
   frameAnalysis: FrameAnalysis,
   config: any
 ): HTMLCanvasElement {
+  // Special case for original product image - no frame, just product
+  if (config.id === 'original') {
+    console.log('🖼️  Generating original product image (no frame)');
+
+    const originalCanvas = document.createElement('canvas');
+    originalCanvas.width = product.width;
+    originalCanvas.height = product.height;
+    const originalCtx = originalCanvas.getContext('2d', { willReadFrequently: true })!;
+
+    // Draw product on transparent background
+    originalCtx.drawImage(product, 0, 0);
+
+    console.log(`✅ Original product image complete: ${originalCanvas.width}x${originalCanvas.height}\n`);
+    return originalCanvas;
+  }
+
+  // Special case for side view - no frame, just transformed product
+  if (config.id === 'side-view') {
+    console.log('🔄 Generating side view (no frame) - applying 3D transforms');
+
+    // Create canvas with extra space for transformations
+    const sideCanvas = document.createElement('canvas');
+    const padding = product.width * 0.3;
+    sideCanvas.width = product.width + padding * 2;
+    sideCanvas.height = product.height + padding * 2;
+    const sideCtx = sideCanvas.getContext('2d', { willReadFrequently: true })!;
+
+    // Calculate center position
+    const centerX = sideCanvas.width / 2;
+    const centerY = sideCanvas.height / 2;
+
+    sideCtx.save();
+
+    // Move to center for transformations
+    sideCtx.translate(centerX, centerY);
+
+    // Apply horizontal scale to simulate perspective (product viewed from side)
+    // Compress horizontally to simulate viewing from an angle
+    sideCtx.scale(0.6, 1.0);
+
+    // Apply slight rotation for more dynamic angle
+    sideCtx.rotate((-8 * Math.PI) / 180);
+
+    // Apply horizontal skew to create perspective effect
+    // This simulates the product being viewed from an angle
+    sideCtx.transform(1, 0, -0.3, 1, 0, 0);
+
+    // Draw the product centered
+    sideCtx.drawImage(
+      product,
+      -product.width / 2,
+      -product.height / 2,
+      product.width,
+      product.height
+    );
+
+    sideCtx.restore();
+
+    console.log(`✅ Enhanced side view complete: ${sideCanvas.width}x${sideCanvas.height}\n`);
+    return sideCanvas;
+  }
+
+  // Normal mockup generation with frame
   // 1. Create canvas at frame size
   const canvas = document.createElement('canvas');
   canvas.width = frame.width;
   canvas.height = frame.height;
-  const ctx = canvas.getContext('2d')!;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+
+  if (!ctx) {
+    throw new Error('Failed to get canvas context');
+  }
+
+  console.log(`🖼️  Compositing for variation: ${config.name || 'unknown'}`);
+  console.log(`📐 Canvas size: ${canvas.width}x${canvas.height}`);
+  console.log(`🖼️  Frame size: ${frame.width}x${frame.height}`);
+  console.log(`📦 Product size: ${product.width}x${product.height}`);
+
+  // Verify frame image is still valid
+  if (!frame.complete || frame.naturalWidth === 0) {
+    throw new Error('Frame image is not loaded or is invalid');
+  }
 
   // 2. Draw frame
-  ctx.drawImage(frame, 0, 0);
+  try {
+    // Reset canvas state
+    ctx.resetTransform();
+    ctx.globalAlpha = 1.0;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.filter = 'none';
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw frame
+    ctx.drawImage(frame, 0, 0);
+    console.log('✅ Frame drawn successfully');
+
+    // Verify frame was drawn (check if pixel data exists)
+    const testPixel = ctx.getImageData(0, 0, 1, 1).data;
+    if (testPixel[3] === 0) {
+      console.warn('⚠️  Frame appears to be transparent at (0,0)');
+    }
+  } catch (error) {
+    console.error('❌ Failed to draw frame:', error);
+    throw error;
+  }
 
   // 3. Calculate scale to fill the product area (safe zone)
   const safeZone = frameAnalysis.safeZone;
   const productAreaWidth = safeZone.width;
   const productAreaHeight = safeZone.height;
 
-  // Scale product to fill the product area (with some padding)
-  const padding = 0.9; // Use 90% of the area
+  // Scale product to fill the product area more aggressively
+  const padding = 0.95; // Use 95% of the area (less padding = bigger product)
   const scaleX = (productAreaWidth * padding) / product.width;
   const scaleY = (productAreaHeight * padding) / product.height;
 
@@ -420,6 +551,24 @@ export function compositeProductIntoFrame(
 
   // Apply variation-specific scale modifier
   scale = scale * config.scale;
+
+  console.log('📊 Product scaling:', {
+    originalSize: `${product.width}x${product.height}`,
+    productArea: `${Math.round(productAreaWidth)}x${Math.round(productAreaHeight)}`,
+    scaleX: scaleX.toFixed(3),
+    scaleY: scaleY.toFixed(3),
+    chosenScale: Math.min(scaleX, scaleY).toFixed(3),
+    variationScale: config.scale,
+    finalScale: scale.toFixed(3),
+    finalSize: `${Math.round(product.width * scale)}x${Math.round(product.height * scale)}`
+  });
+
+  // Log configuration details
+  console.log('🎨 Variation config:', {
+    name: config.name,
+    shadow: config.shadow ? `blur:${config.shadow.blur} opacity:${config.shadow.opacity} offsetY:${config.shadow.offsetY}` : 'none',
+    lighting: config.lighting ? `brightness:${config.lighting.brightness} contrast:${config.lighting.contrast} vignette:${config.lighting.vignette}` : 'none'
+  });
 
   // 4. Calculate position to center product in the product area
   const productWidth = product.width * scale;
@@ -432,33 +581,66 @@ export function compositeProductIntoFrame(
   const x = centerX + (safeZone.width - productWidth) * (config.position.x - 0.5);
   const y = centerY + (safeZone.height - productHeight) * (config.position.y - 0.5);
 
-  // 5. Apply shadow if configured
+  // 5. Draw the product with shadow if configured
+  console.log('✏️  Drawing product at position:', { x: Math.round(x), y: Math.round(y) });
+
   if (config.shadow) {
+    // Save context state before applying shadow
     ctx.save();
+
+    // Apply shadow to the product
     ctx.shadowColor = `rgba(0, 0, 0, ${config.shadow.opacity})`;
     ctx.shadowBlur = config.shadow.blur;
+    ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = config.shadow.offsetY;
-  }
 
-  // 6. Apply rotation if configured
-  if (config.rotation !== 0) {
-    ctx.save();
-    ctx.translate(x + productWidth / 2, y + productHeight / 2);
-    ctx.rotate((config.rotation * Math.PI) / 180);
-    ctx.drawImage(product, -productWidth / 2, -productHeight / 2, productWidth, productHeight);
+    console.log('🌑 Applying shadow:', config.shadow);
+
+    // Draw product with shadow
+    if (config.rotation !== 0) {
+      ctx.translate(x + productWidth / 2, y + productHeight / 2);
+      ctx.rotate((config.rotation * Math.PI) / 180);
+      ctx.drawImage(product, -productWidth / 2, -productHeight / 2, productWidth, productHeight);
+      ctx.rotate(-(config.rotation * Math.PI) / 180);
+      ctx.translate(-(x + productWidth / 2), -(y + productHeight / 2));
+    } else {
+      ctx.drawImage(product, x, y, productWidth, productHeight);
+    }
+
+    // Restore context to remove shadow for subsequent operations
     ctx.restore();
+    console.log('✅ Product drawn with shadow');
   } else {
-    ctx.drawImage(product, x, y, productWidth, productHeight);
+    // No shadow, just draw product
+    if (config.rotation !== 0) {
+      ctx.save();
+      ctx.translate(x + productWidth / 2, y + productHeight / 2);
+      ctx.rotate((config.rotation * Math.PI) / 180);
+      ctx.drawImage(product, -productWidth / 2, -productHeight / 2, productWidth, productHeight);
+      ctx.restore();
+    } else {
+      ctx.drawImage(product, x, y, productWidth, productHeight);
+    }
+    console.log('✅ Product drawn without shadow');
   }
 
-  if (config.shadow) {
-    ctx.restore();
-  }
+  // 6. Verify final canvas has content
+  const finalPixel = ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data;
+  console.log('🔍 Final canvas check - pixel at product position:', {
+    r: finalPixel[0],
+    g: finalPixel[1],
+    b: finalPixel[2],
+    a: finalPixel[3]
+  });
 
-  // 7. Apply lighting effects if configured
+  // 6. Apply lighting effects if configured
   if (config.lighting) {
+    console.log('💡 Applying lighting effects...');
     applyLightingEffects(ctx, canvas, config.lighting);
+    console.log('✅ Lighting effects applied');
   }
+
+  console.log(`🎉 Composite complete for variation: ${config.name}\n`);
 
   return canvas;
 }

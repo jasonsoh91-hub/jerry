@@ -15,7 +15,7 @@ export default function Home() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Product Mockup Generator</h1>
               <p className="text-gray-600 mt-1">
-                Automatically generate 5 professional mockup variations from your product images
+                Generate product mockups and original product photos
               </p>
             </div>
           </div>
@@ -51,7 +51,7 @@ export default function Home() {
                 <span className="text-2xl font-bold text-green-600">3</span>
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">Generate & Download</h3>
-              <p className="text-sm text-gray-600">Get 5 unique variations instantly</p>
+              <p className="text-sm text-gray-600">Get 3 images: mockup + original + side view</p>
             </div>
           </div>
         </div>
