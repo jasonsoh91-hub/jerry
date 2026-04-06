@@ -37,7 +37,7 @@ export default function Home() {
                 <span className="text-2xl font-bold text-blue-600">1</span>
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">Upload Product</h3>
-              <p className="text-sm text-gray-600">Upload your product image with any background</p>
+              <p className="text-sm text-gray-600">Upload your product image</p>
             </div>
             <div className="text-center">
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">

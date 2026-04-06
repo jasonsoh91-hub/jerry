@@ -33,11 +33,11 @@ export default function MockupGenerator() {
         (p) => {
           setProgress(p);
           // Show detailed progress to user
-          if (p.percentage < 20) {
-            setProgress({ ...p, stage: '🎨 Removing background with AI...' });
-          } else if (p.percentage < 40) {
-            setProgress({ ...p, stage: '📐 Analyzing frame templates...' });
-          } else if (p.percentage < 80) {
+          if (p.percentage < 30) {
+            setProgress({ ...p, stage: '📐 Processing product image...' });
+          } else if (p.percentage < 50) {
+            setProgress({ ...p, stage: '🎨 Analyzing frame templates...' });
+          } else if (p.percentage < 90) {
             setProgress({ ...p, stage: '✨ Generating mockup variations...' });
           } else {
             setProgress({ ...p, stage: '🎉 Finalizing mockups...' });
@@ -49,7 +49,7 @@ export default function MockupGenerator() {
       console.error('Generation failed:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(
-        `Failed to generate mockups: ${errorMessage}\n\nTips:\n• Use clear images with good lighting\n• Try PNG or JPG format instead of WebP\n• Use images with white/light backgrounds\n• Keep file sizes under 5MB`
+        `Failed to generate mockups: ${errorMessage}\n\nTips:\n• Try smaller image files (under 5MB)\n• Use PNG or JPG format\n• Make sure images are clear and high-quality\n• Check that your images loaded correctly`
       );
     } finally {
       setIsGenerating(false);

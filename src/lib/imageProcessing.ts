@@ -225,64 +225,24 @@ export async function processProductImage(file: File): Promise<ProductImage> {
     throw new Error('Invalid image: image has no dimensions');
   }
 
-  console.log(`Loaded image: ${img.width}x${img.height}`);
+  console.log(`Using original image: ${img.width}x${img.height}`);
 
-  // 2. Try to remove background, with fallbacks
-  let processedImg: HTMLImageElement;
-  try {
-    console.log('Attempting AI background removal...');
-    const blob = await removeBackground(img.src);
-    processedImg = await loadImageFromBlob(blob);
-    console.log('✓ AI background removal successful!');
-  } catch (error) {
-    console.warn('✗ AI background removal failed, trying simple fallback:', error);
-    try {
-      // Fallback to simple white background removal (now async)
-      processedImg = await simpleBackgroundRemoval(img);
-      console.log('✓ Simple background removal successful!');
-    } catch (fallbackError) {
-      console.warn('✗ Simple background removal failed, using original image:', fallbackError);
-      // Final fallback: use original image
-      processedImg = img;
-      console.log('✓ Using original image');
-    }
-  }
+  // Use the original image without background removal (much more reliable!)
+  const processedImg = img;
 
-  // Validate processed image has valid dimensions
-  if (!processedImg.width || !processedImg.height || processedImg.width <= 0 || processedImg.height <= 0) {
-    console.error('✗ Processed image has invalid dimensions');
-    throw new Error('Processed image has invalid dimensions');
-  }
-
-  console.log(`Processed image: ${processedImg.width}x${processedImg.height}`);
-
-  // 3. Detect product bounds
-  let bounds: { width: number; height: number; x: number; y: number };
-  try {
-    bounds = detectProductBounds(processedImg);
-    console.log('✓ Product bounds detected:', bounds);
-  } catch (error) {
-    console.error('✗ Failed to detect product bounds:', error);
-    throw new Error('Failed to detect product bounds. Please try a clearer image.');
-  }
-
-  // 4. Center product with padding
-  const centered = centerProduct(processedImg, bounds, 0.2);
-
-  // Wait for the image to finish loading
-  await new Promise((resolve) => {
-    if (centered.complete) {
-      resolve(centered);
-    } else {
-      centered.onload = () => resolve(centered);
-    }
-  });
+  // Create bounds for the entire image
+  const bounds = {
+    width: img.width,
+    height: img.height,
+    x: 0,
+    y: 0
+  };
 
   console.log('✓ Image processing complete');
 
   return {
     original: file,
-    processed: centered,
+    processed: processedImg,
     bounds
   };
 }
