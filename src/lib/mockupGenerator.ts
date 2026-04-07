@@ -1,16 +1,24 @@
 // Mockup generation orchestrator and variation algorithms
 
-import type { VariationConfig, GeneratedMockup, ProcessingProgress } from './types';
+import type { VariationConfig, GeneratedMockup, ProcessingProgress, ProductInfo } from './types';
 import { processProductImage, analyzeFrame, compositeProductIntoFrame } from './imageProcessing';
 
+export type ProductImages = {
+  front: File | null;
+  rightSide: File | null;
+  leftSide: File | null;
+  rear: File | null;
+};
+
 /**
- * Configuration for mockup generation
- * Scale is relative to filling the product area (1.0 = fills area)
+ * Configuration for the 5 automatic variations
+ * Each variation uses a different product view
  */
 export const VARIATION_CONFIGS: VariationConfig[] = [
   {
     id: 'mockup',
     name: 'Product Mockup',
+    productView: 'front',
     scale: 1.0,
     position: { x: 0.5, y: 0.5 },
     rotation: 0,
@@ -20,37 +28,91 @@ export const VARIATION_CONFIGS: VariationConfig[] = [
   {
     id: 'original',
     name: 'Original Product',
+    productView: 'front',
     scale: 1.0,
     position: { x: 0.5, y: 0.5 },
     rotation: 0,
     description: 'Original product photo with background removed'
   },
   {
-    id: 'side-view',
-    name: 'Side View (Right)',
+    id: 'side-right',
+    name: 'Side View - Right',
+    productView: 'rightSide',
     scale: 1.0,
     position: { x: 0.5, y: 0.5 },
-    rotation: -30,
-    description: 'Side view without frame - rotated product only'
+    rotation: 0,
+    description: 'Side view facing right'
+  },
+  {
+    id: 'side-left',
+    name: 'Side View - Left',
+    productView: 'leftSide',
+    scale: 1.0,
+    position: { x: 0.5, y: 0.5 },
+    rotation: 0,
+    description: 'Side view facing left'
+  },
+  {
+    id: 'rear-view',
+    name: 'Rear View',
+    productView: 'rear',
+    scale: 1.0,
+    position: { x: 0.5, y: 0.5 },
+    rotation: 0,
+    description: 'Rear view product photo'
   }
 ];
 
 /**
- * Generate mockups from product image and frame templates
+ * Generate mockups from product images and frame templates
  */
 export async function generateMockups(
-  productFile: File,
+  productImages: ProductImages,
   frameFiles: File[],
   onProgress?: (progress: ProcessingProgress) => void,
-  productAreaConfig?: { x: number; y: number; width: number; height: number } | null
+  productAreaConfig?: { x: number; y: number; width: number; height: number; scale: number } | null,
+  productInfo?: ProductInfo | null
 ): Promise<GeneratedMockup[]> {
   const mockups: GeneratedMockup[] = [];
-  const frameUrls: string[] = []; // Keep track of URLs to clean up later
 
   try {
-    // 1. Process product image (background removal)
-    onProgress?.({ stage: 'Processing product image...', percentage: 10 });
-    const product = await processProductImage(productFile);
+    // 1. Process all available product images (background removal)
+    onProgress?.({ stage: 'Processing product images...', percentage: 10 });
+
+    const processedProducts: Record<string, any> = {};
+
+    // Process front view (required)
+    if (productImages.front) {
+      console.log('Processing front view...');
+      processedProducts.front = await processProductImage(productImages.front);
+    }
+
+    // Process right side view (optional)
+    if (productImages.rightSide) {
+      console.log('Processing right side view...');
+      processedProducts.rightSide = await processProductImage(productImages.rightSide);
+    } else if (productImages.front) {
+      console.log('Right side view not provided, using front view as fallback');
+      processedProducts.rightSide = processedProducts.front;
+    }
+
+    // Process left side view (optional)
+    if (productImages.leftSide) {
+      console.log('Processing left side view...');
+      processedProducts.leftSide = await processProductImage(productImages.leftSide);
+    } else if (productImages.front) {
+      console.log('Left side view not provided, using front view as fallback');
+      processedProducts.leftSide = processedProducts.front;
+    }
+
+    // Process rear view (optional)
+    if (productImages.rear) {
+      console.log('Processing rear view...');
+      processedProducts.rear = await processProductImage(productImages.rear);
+    } else if (productImages.front) {
+      console.log('Rear view not provided, using front view as fallback');
+      processedProducts.rear = processedProducts.front;
+    }
 
     // 2. Load and analyze frames
     onProgress?.({ stage: 'Analyzing frame templates...', percentage: 20 });
@@ -79,11 +141,30 @@ export async function generateMockups(
         console.log(`\n🎨 Generating variation ${currentVariation + 1}/${totalVariations}: ${config.name}`);
 
         try {
-          const canvas = compositeProductIntoFrame(
+          // Get the appropriate product image based on the variation config
+          const productView = config.productView || 'front';
+          const product = processedProducts[productView];
+
+          if (!product) {
+            console.warn(`⚠️  No ${productView} view available, skipping ${config.name}`);
+            currentVariation++;
+            continue;
+          }
+
+          console.log(`📸 Using ${productView} view for ${config.name}`);
+
+          // Note: Product info overlay disabled - using text editor instead
+          const configWithProductInfo = {
+            ...config,
+            showProductInfo: false, // Disabled - using drag-and-drop text editor
+            productInfo: null
+          };
+
+          const canvas = await compositeProductIntoFrame(
             product.processed,
             frame.img,
             frame.analysis,
-            config
+            configWithProductInfo
           );
 
           console.log(`✅ Successfully generated variation: ${config.name}`);

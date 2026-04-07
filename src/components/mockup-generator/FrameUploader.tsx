@@ -9,6 +9,7 @@ interface ProductAreaConfig {
   y: number;
   width: number;
   height: number;
+  scale: number; // Product scale multiplier (1.0 = 100%)
 }
 
 interface FrameUploaderProps {
@@ -45,7 +46,13 @@ export default function FrameUploader({ onImagesSelect, selectedImages, onProduc
   const [error, setError] = useState<string | null>(null);
   const [showCustomSettings, setShowCustomSettings] = useState(false);
   const [useManualSettings, setUseManualSettings] = useState(true); // Default to manual for better control
-  const [productArea, setProductArea] = useState({ x: 10, y: 15, width: 35, height: 70 }); // Better default for left-side placement
+  const [productArea, setProductArea] = useState({
+    x: 10,
+    y: 15,
+    width: 35,
+    height: 70,
+    scale: 1.0 // Default scale: 100%
+  }); // Better default for left-side placement
 
   // Notify parent when product area changes
   useEffect(() => {
@@ -219,36 +226,51 @@ export default function FrameUploader({ onImagesSelect, selectedImages, onProduc
                 className="w-full"
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-blue-900 mb-1">
+                Product Scale ({Math.round(productArea.scale * 100)}%)
+              </label>
+              <input
+                type="range"
+                min="50"
+                max="200"
+                value={productArea.scale * 100}
+                onChange={(e) => setProductArea({ ...productArea, scale: Number(e.target.value) / 100 })}
+                className="w-full"
+              />
+            </div>
           </div>
 
           <div className="mt-3 p-3 bg-blue-100 rounded-lg">
             <p className="text-xs text-blue-800">
               <strong>Preview:</strong> Product will be placed at X:{productArea.x}%, Y:{productArea.y}%
               with size {productArea.width}% × {productArea.height}% of the frame
+              and scaled to {Math.round(productArea.scale * 100)}%
             </p>
           </div>
 
           <div className="mt-3 flex gap-2">
             <button
-              onClick={() => setProductArea({ x: 10, y: 15, width: 35, height: 70 })}
+              onClick={() => setProductArea({ x: 10, y: 15, width: 35, height: 70, scale: 1.0 })}
               className="text-xs px-2 py-1 bg-white text-blue-700 rounded hover:bg-blue-50"
             >
               Left Side
             </button>
             <button
-              onClick={() => setProductArea({ x: 30, y: 20, width: 40, height: 60 })}
+              onClick={() => setProductArea({ x: 30, y: 20, width: 40, height: 60, scale: 1.0 })}
               className="text-xs px-2 py-1 bg-white text-blue-700 rounded hover:bg-blue-50"
             >
               Center
             </button>
             <button
-              onClick={() => setProductArea({ x: 55, y: 15, width: 35, height: 70 })}
+              onClick={() => setProductArea({ x: 55, y: 15, width: 35, height: 70, scale: 1.0 })}
               className="text-xs px-2 py-1 bg-white text-blue-700 rounded hover:bg-blue-50"
             >
               Right Side
             </button>
             <button
-              onClick={() => setProductArea({ x: 5, y: 10, width: 45, height: 80 })}
+              onClick={() => setProductArea({ x: 5, y: 10, width: 45, height: 80, scale: 1.0 })}
               className="text-xs px-2 py-1 bg-white text-blue-700 rounded hover:bg-blue-50"
             >
               Full Left

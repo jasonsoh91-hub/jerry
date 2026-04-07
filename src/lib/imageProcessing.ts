@@ -268,7 +268,7 @@ export async function processProductImage(file: File): Promise<ProductImage> {
  */
 export async function analyzeFrame(
   frameImg: HTMLImageElement,
-  manualConfig?: { x: number; y: number; width: number; height: number } | null
+  manualConfig?: { x: number; y: number; width: number; height: number; scale: number } | null
 ): Promise<FrameAnalysis> {
   const width = frameImg.width;
   const height = frameImg.height;
@@ -295,7 +295,8 @@ export async function analyzeFrame(
       width,
       height,
       safeZone,
-      aspectRatio: width / height
+      aspectRatio: width / height,
+      manualScale: manualConfig.scale // Include manual scale
     };
   }
 
@@ -375,7 +376,8 @@ export async function analyzeFrame(
     width,
     height,
     safeZone,
-    aspectRatio: width / height
+    aspectRatio: width / height,
+    manualScale: 1.0 // Default scale for automatic detection
   };
 }
 
@@ -418,16 +420,182 @@ export function applyLightingEffects(
 }
 
 /**
+ * Draw product information overlay on the canvas
+ * Creates styled boxes with product details, specs, and features
+ */
+export function drawProductInfoOverlay(
+  ctx: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement,
+  productInfo: any,
+  config: any
+): void {
+  if (!productInfo || !config.showProductInfo) {
+    return;
+  }
+
+  console.log('📝 Drawing product info overlay:', productInfo.name);
+
+  const padding = 20;
+  const boxWidth = Math.min(400, canvas.width * 0.4);
+  const boxHeight = canvas.height * 0.7;
+  const startX = canvas.width - boxWidth - padding;
+  const startY = padding;
+
+  // Background box with gradient and shadow
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+  ctx.shadowBlur = 20;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 5;
+
+  // Draw gradient background
+  const gradient = ctx.createLinearGradient(startX, startY, startX + boxWidth, startY + boxHeight);
+  gradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+  gradient.addColorStop(1, 'rgba(250, 250, 250, 0.95)');
+
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.roundRect(startX, startY, boxWidth, boxHeight, 12);
+  ctx.fill();
+
+  // Draw border
+  ctx.strokeStyle = 'rgba(200, 200, 200, 0.5)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.restore();
+
+  // Text configuration
+  const textPadding = 24;
+  let currentY = startY + textPadding;
+
+  // Brand name
+  ctx.fillStyle = '#6B7280';
+  ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(productInfo.brand.toUpperCase(), startX + textPadding, currentY);
+  currentY += 20;
+
+  // Product name
+  ctx.fillStyle = '#111827';
+  ctx.font = 'bold 18px system-ui, -apple-system, sans-serif';
+  const maxWidth = boxWidth - (textPadding * 2);
+
+  // Wrap text for product name
+  const words = productInfo.name.split(' ');
+  let line = '';
+  for (let i = 0; i < words.length; i++) {
+    const testLine = line + words[i] + ' ';
+    const metrics = ctx.measureText(testLine);
+    if (metrics.width > maxWidth && i > 0) {
+      ctx.fillText(line.trim(), startX + textPadding, currentY);
+      line = words[i] + ' ';
+      currentY += 24;
+    } else {
+      line = testLine;
+    }
+  }
+  ctx.fillText(line.trim(), startX + textPadding, currentY);
+  currentY += 28;
+
+  // Description
+  if (productInfo.description) {
+    ctx.fillStyle = '#6B7280';
+    ctx.font = '13px system-ui, -apple-system, sans-serif';
+    const descWords = productInfo.description.split(' ');
+    let descLine = '';
+    for (let i = 0; i < descWords.length; i++) {
+      const testLine = descLine + descWords[i] + ' ';
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && i > 0) {
+        ctx.fillText(descLine.trim(), startX + textPadding, currentY);
+        descLine = descWords[i] + ' ';
+        currentY += 18;
+      } else {
+        descLine = testLine;
+      }
+    }
+    ctx.fillText(descLine.trim(), startX + textPadding, currentY);
+    currentY += 24;
+  }
+
+  // Specifications section
+  if (productInfo.specifications && productInfo.specifications.length > 0) {
+    ctx.fillStyle = '#111827';
+    ctx.font = 'bold 14px system-ui, -apple-system, sans-serif';
+    ctx.fillText('SPECIFICATIONS', startX + textPadding, currentY);
+    currentY += 16;
+
+    ctx.fillStyle = '#4B5563';
+    ctx.font = '11px system-ui, -apple-system, sans-serif';
+
+    const specLimit = Math.min(productInfo.specifications.length, 4);
+    for (let i = 0; i < specLimit; i++) {
+      const spec = productInfo.specifications[i];
+      const specWords = spec.split(' ');
+      let specLine = '• ';
+      for (let j = 0; j < specWords.length; j++) {
+        const testLine = specLine + specWords[j] + ' ';
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && j > 0) {
+          ctx.fillText(specLine.trim(), startX + textPadding, currentY);
+          specLine = '  ' + specWords[j] + ' ';
+          currentY += 16;
+        } else {
+          specLine = testLine;
+        }
+      }
+      ctx.fillText(specLine.trim(), startX + textPadding, currentY);
+      currentY += 16;
+    }
+    currentY += 8;
+  }
+
+  // Key features section
+  if (productInfo.keyFeatures && productInfo.keyFeatures.length > 0) {
+    ctx.fillStyle = '#111827';
+    ctx.font = 'bold 14px system-ui, -apple-system, sans-serif';
+    ctx.fillText('KEY FEATURES', startX + textPadding, currentY);
+    currentY += 16;
+
+    ctx.fillStyle = '#059669';
+    ctx.font = '11px system-ui, -apple-system, sans-serif';
+
+    const featureLimit = Math.min(productInfo.keyFeatures.length, 3);
+    for (let i = 0; i < featureLimit; i++) {
+      const feature = '✓ ' + productInfo.keyFeatures[i];
+      const featureWords = feature.split(' ');
+      let featureLine = '';
+      for (let j = 0; j < featureWords.length; j++) {
+        const testLine = featureLine + featureWords[j] + ' ';
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && j > 0) {
+          ctx.fillText(featureLine.trim(), startX + textPadding, currentY);
+          featureLine = '  ' + featureWords[j] + ' ';
+          currentY += 16;
+        } else {
+          featureLine = testLine;
+        }
+      }
+      ctx.fillText(featureLine.trim(), startX + textPadding, currentY);
+      currentY += 16;
+    }
+  }
+
+  console.log('✅ Product info overlay complete');
+}
+
+/**
  * Composite product into frame with specified configuration
  * Scales product to fill the product area in the frame
  * For 'original' config, just returns the product on transparent background
  */
-export function compositeProductIntoFrame(
+export async function compositeProductIntoFrame(
   product: HTMLImageElement,
   frame: HTMLImageElement,
   frameAnalysis: FrameAnalysis,
   config: any
-): HTMLCanvasElement {
+): Promise<HTMLCanvasElement> {
   // Special case for original product image - no frame, just product
   if (config.id === 'original') {
     console.log('🖼️  Generating original product image (no frame)');
@@ -444,50 +612,21 @@ export function compositeProductIntoFrame(
     return originalCanvas;
   }
 
-  // Special case for side view - no frame, just transformed product
-  if (config.id === 'side-view') {
-    console.log('🔄 Generating side view (no frame) - applying 3D transforms');
+  // Special case for side/rear views - no frame, just product
+  if (config.id === 'side-right' || config.id === 'side-left' || config.id === 'rear-view') {
+    console.log(`🔄 Generating ${config.name} (no frame) - using uploaded photo`);
 
-    // Create canvas with extra space for transformations
-    const sideCanvas = document.createElement('canvas');
-    const padding = product.width * 0.3;
-    sideCanvas.width = product.width + padding * 2;
-    sideCanvas.height = product.height + padding * 2;
-    const sideCtx = sideCanvas.getContext('2d', { willReadFrequently: true })!;
+    // Create canvas same size as product
+    const viewCanvas = document.createElement('canvas');
+    viewCanvas.width = product.width;
+    viewCanvas.height = product.height;
+    const viewCtx = viewCanvas.getContext('2d', { willReadFrequently: true })!;
 
-    // Calculate center position
-    const centerX = sideCanvas.width / 2;
-    const centerY = sideCanvas.height / 2;
+    // Draw product on transparent background
+    viewCtx.drawImage(product, 0, 0);
 
-    sideCtx.save();
-
-    // Move to center for transformations
-    sideCtx.translate(centerX, centerY);
-
-    // Apply horizontal scale to simulate perspective (product viewed from side)
-    // Compress horizontally to simulate viewing from an angle
-    sideCtx.scale(0.6, 1.0);
-
-    // Apply slight rotation for more dynamic angle
-    sideCtx.rotate((-8 * Math.PI) / 180);
-
-    // Apply horizontal skew to create perspective effect
-    // This simulates the product being viewed from an angle
-    sideCtx.transform(1, 0, -0.3, 1, 0, 0);
-
-    // Draw the product centered
-    sideCtx.drawImage(
-      product,
-      -product.width / 2,
-      -product.height / 2,
-      product.width,
-      product.height
-    );
-
-    sideCtx.restore();
-
-    console.log(`✅ Enhanced side view complete: ${sideCanvas.width}x${sideCanvas.height}\n`);
-    return sideCanvas;
+    console.log(`✅ ${config.name} complete: ${viewCanvas.width}x${viewCanvas.height}\n`);
+    return viewCanvas;
   }
 
   // Normal mockup generation with frame
@@ -552,6 +691,12 @@ export function compositeProductIntoFrame(
   // Apply variation-specific scale modifier
   scale = scale * config.scale;
 
+  // Apply manual scale from user settings
+  if (frameAnalysis.manualScale && frameAnalysis.manualScale !== 1.0) {
+    scale = scale * frameAnalysis.manualScale;
+    console.log('🔧 Applying manual scale:', frameAnalysis.manualScale);
+  }
+
   console.log('📊 Product scaling:', {
     originalSize: `${product.width}x${product.height}`,
     productArea: `${Math.round(productAreaWidth)}x${Math.round(productAreaHeight)}`,
@@ -559,6 +704,7 @@ export function compositeProductIntoFrame(
     scaleY: scaleY.toFixed(3),
     chosenScale: Math.min(scaleX, scaleY).toFixed(3),
     variationScale: config.scale,
+    manualScale: frameAnalysis.manualScale || 1.0,
     finalScale: scale.toFixed(3),
     finalSize: `${Math.round(product.width * scale)}x${Math.round(product.height * scale)}`
   });
@@ -633,7 +779,14 @@ export function compositeProductIntoFrame(
     a: finalPixel[3]
   });
 
-  // 6. Apply lighting effects if configured
+  // 6. Draw product info overlay if configured
+  if (config.showProductInfo && config.productInfo) {
+    console.log('📝 Adding product info overlay...');
+    drawProductInfoOverlay(ctx, canvas, config.productInfo, config);
+    console.log('✅ Product info overlay applied');
+  }
+
+  // 7. Apply lighting effects if configured
   if (config.lighting) {
     console.log('💡 Applying lighting effects...');
     applyLightingEffects(ctx, canvas, config.lighting);

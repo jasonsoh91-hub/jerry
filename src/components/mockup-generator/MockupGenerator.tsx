@@ -1,17 +1,24 @@
 'use client';
 
 import { useState } from 'react';
-import ProductUploader from './ProductUploader';
+import ProductUploader, { ProductImages, ProductView } from './ProductUploader';
+import ProductInfoInput from './ProductInfoInput';
 import FrameUploader from './FrameUploader';
 import GenerateButton from './GenerateButton';
 import MockupPreview from './MockupPreview';
 import { generateMockups } from '@/lib/mockupGenerator';
-import type { GeneratedMockup, ProcessingProgress } from '@/lib/types';
+import type { GeneratedMockup, ProcessingProgress, ProductInfo } from '@/lib/types';
 
 export default function MockupGenerator() {
-  const [productImage, setProductImage] = useState<File | null>(null);
+  const [productImages, setProductImages] = useState<ProductImages>({
+    front: null,
+    rightSide: null,
+    leftSide: null,
+    rear: null
+  });
+  const [productInfo, setProductInfo] = useState<ProductInfo | null>(null);
   const [frameImages, setFrameImages] = useState<File[]>([]);
-  const [productAreaConfig, setProductAreaConfig] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [productAreaConfig, setProductAreaConfig] = useState<{ x: number; y: number; width: number; height: number; scale: number } | null>(null);
   const [mockups, setMockups] = useState<GeneratedMockup[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState<ProcessingProgress>({
@@ -21,7 +28,10 @@ export default function MockupGenerator() {
   const [error, setError] = useState<string | null>(null);
 
   const handleGenerate = async () => {
-    if (!productImage || frameImages.length === 0) return;
+    if (!productImages.front || frameImages.length === 0) {
+      setError('Please upload at least a front view product image and frame template(s)');
+      return;
+    }
 
     setIsGenerating(true);
     setError(null);
@@ -29,26 +39,31 @@ export default function MockupGenerator() {
 
     try {
       const generated = await generateMockups(
-        productImage,
+        productImages,
         frameImages,
         (p) => {
           setProgress(p);
           // Show detailed progress to user
-          if (p.percentage < 20) {
+          if (p.percentage < 15) {
             setProgress({ ...p, stage: '🎨 Removing background & detecting product...' });
-          } else if (p.percentage < 40) {
+          } else if (p.percentage < 30) {
             setProgress({ ...p, stage: '📐 Analyzing frame product areas...' });
-          } else if (p.percentage < 60) {
+          } else if (p.percentage < 45) {
             setProgress({ ...p, stage: '✨ Generating product mockup...' });
-          } else if (p.percentage < 80) {
+          } else if (p.percentage < 60) {
             setProgress({ ...p, stage: '📸 Preparing original product photo...' });
-          } else if (p.percentage < 90) {
-            setProgress({ ...p, stage: '🔄 Creating side view...' });
+          } else if (p.percentage < 75) {
+            setProgress({ ...p, stage: '➡️  Creating side view (right)...' });
+          } else if (p.percentage < 85) {
+            setProgress({ ...p, stage: '⬅️  Creating side view (left)...' });
+          } else if (p.percentage < 95) {
+            setProgress({ ...p, stage: '🔙 Creating rear view...' });
           } else {
             setProgress({ ...p, stage: '🎉 Finalizing...' });
           }
         },
-        productAreaConfig
+        productAreaConfig,
+        productInfo
       );
       setMockups(generated);
     } catch (err) {
@@ -62,15 +77,15 @@ export default function MockupGenerator() {
     }
   };
 
-  const canGenerate = productImage && frameImages.length > 0 && !isGenerating;
+  const canGenerate = productImages.front && frameImages.length > 0 && !isGenerating;
 
   return (
     <div className="space-y-8">
       {/* Upload Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <ProductUploader
-          onImageSelect={setProductImage}
-          selectedImage={productImage}
+          onImagesSelect={setProductImages}
+          selectedImages={productImages}
         />
         <FrameUploader
           onImagesSelect={setFrameImages}
@@ -78,6 +93,11 @@ export default function MockupGenerator() {
           onProductAreaChange={setProductAreaConfig}
         />
       </div>
+
+      {/* Product Information Input */}
+      <ProductInfoInput
+        onProductInfoUpdate={setProductInfo}
+      />
 
       {/* Error Display */}
       {error && (

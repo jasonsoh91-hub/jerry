@@ -11,6 +11,15 @@ export interface ProductImage {
   };
 }
 
+export interface ProductInfo {
+  name: string;
+  brand: string;
+  model: string;
+  description: string;
+  specifications: string[];
+  keyFeatures: string[];
+}
+
 export interface FrameAnalysis {
   width: number;
   height: number;
@@ -21,11 +30,13 @@ export interface FrameAnalysis {
     height: number;
   };
   aspectRatio: number;
+  manualScale?: number; // Manual scale multiplier from user settings
 }
 
 export interface VariationConfig {
   id: string;
   name: string;
+  productView?: 'front' | 'rightSide' | 'leftSide' | 'rear'; // Which product view to use
   scale: number;
   position: { x: number; y: number };
   rotation: number;
@@ -40,6 +51,8 @@ export interface VariationConfig {
     vignette: boolean;
   };
   description: string;
+  showProductInfo?: boolean; // Whether to show product info overlay
+  productInfo?: ProductInfo | null; // Product information to display
 }
 
 export interface GeneratedMockup {
