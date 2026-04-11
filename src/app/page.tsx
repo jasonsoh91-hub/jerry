@@ -22,13 +22,8 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Generator */}
-      <main className="max-w-7xl mx-auto">
-        <MockupGenerator />
-      </main>
-
-      {/* Instructions */}
-      <div className="max-w-7xl mx-auto mt-12">
+      {/* Instructions - Now First Section */}
+      <div className="max-w-7xl mx-auto mb-8">
         <div className="bg-white rounded-2xl shadow-lg p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">How It Works</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -56,6 +51,11 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Main Generator */}
+      <main className="max-w-7xl mx-auto">
+        <MockupGenerator />
+      </main>
     </div>
   );
 }

@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import ProductUploader, { ProductImages, ProductView } from './ProductUploader';
-import ProductInfoInput from './ProductInfoInput';
 import FrameUploader from './FrameUploader';
 import GenerateButton from './GenerateButton';
 import MockupPreview from './MockupPreview';
@@ -81,22 +80,17 @@ export default function MockupGenerator() {
 
   return (
     <div className="space-y-8">
-      {/* Upload Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <ProductUploader
-          onImagesSelect={setProductImages}
-          selectedImages={productImages}
-        />
-        <FrameUploader
-          onImagesSelect={setFrameImages}
-          selectedImages={frameImages}
-          onProductAreaChange={setProductAreaConfig}
-        />
-      </div>
+      {/* Product Images Upload Section */}
+      <ProductUploader
+        onImagesSelect={setProductImages}
+        selectedImages={productImages}
+      />
 
-      {/* Product Information Input */}
-      <ProductInfoInput
-        onProductInfoUpdate={setProductInfo}
+      {/* Frame Upload Section */}
+      <FrameUploader
+        onImagesSelect={setFrameImages}
+        selectedImages={frameImages}
+        onProductAreaChange={setProductAreaConfig}
       />
 
       {/* Error Display */}

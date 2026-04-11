@@ -4,6 +4,9 @@ import { Download, ChevronDown, Type } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { GeneratedMockup } from '@/lib/types';
 import TextEditor, { TextElement } from './TextEditor';
+import { recompositeProduct, generateMockups } from '@/lib/mockupGenerator';
+import { analyzeFrame } from '@/lib/imageProcessing';
+import type { FrameAnalysis } from '@/lib/types';
 
 type ExportFormat = '1:1' | '3:4';
 
@@ -30,15 +33,34 @@ export default function MockupCard({ mockup }: MockupCardProps) {
   const [productScale, setProductScale] = useState<number>(1.0);
   const [showProductControls, setShowProductControls] = useState(false);
   const [isDraggingProduct, setIsDraggingProduct] = useState(false);
+  const [isRecompositing, setIsRecompositing] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const dragStartRef = useRef<{clientX: number, clientY: number, textX: number, textY: number} | null>(null);
   const inlineInputRef = useRef<HTMLInputElement>(null);
-  const productDragStartRef = useRef<{clientX: number, clientY: number, productX: number, productY: number} | null>(null);
+  const productDragStartRef = useRef<{
+    clientX: number;
+    clientY: number;
+    productX: number;
+    productY: number;
+    canvasWidth: number;
+    canvasHeight: number;
+  } | null>(null);
+  const frameAnalysisRef = useRef<FrameAnalysis | null>(null);
 
   // Check if this is the first mockup (with frame) - only this one has product controls
   const isFirstMockup = mockup.id === 'mockup-1';
+
+  // Extract frame analysis for recompositing
+  useEffect(() => {
+    if (isFirstMockup && mockup.originalFrame && mockup.originalProduct) {
+      // Analyze frame to get safe zone info
+      analyzeFrame(mockup.originalFrame, null).then(analysis => {
+        frameAnalysisRef.current = analysis;
+      });
+    }
+  }, [isFirstMockup, mockup]);
 
   // Update preview when format, text, or product controls change
   useEffect(() => {
@@ -46,8 +68,8 @@ export default function MockupCard({ mockup }: MockupCardProps) {
       let processed = await processAndExport(selectedFormat);
 
       // Apply product position/scale changes for first mockup
-      if (isFirstMockup && (productPosition || productScale !== 1.0)) {
-        processed = await applyProductTransformations(processed);
+      if (isFirstMockup && (productPosition || productScale !== 1.0 || mockup.originalFrame)) {
+        processed = await applyProductTransformations();
       }
 
       // Render text elements on the canvas
@@ -55,7 +77,7 @@ export default function MockupCard({ mockup }: MockupCardProps) {
       setPreviewCanvas(withText);
     };
     updatePreview();
-  }, [selectedFormat, textElements, productPosition, productScale, isFirstMockup]);
+  }, [selectedFormat, textElements, productPosition, productScale, isFirstMockup, mockup.originalFrame]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -202,6 +224,12 @@ export default function MockupCard({ mockup }: MockupCardProps) {
     texts.forEach(text => {
       ctx.save();
 
+      // Clear any existing shadow settings
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+
       // Set font properties
       const font = `${text.fontStyle} ${text.fontWeight} ${text.fontSize}px ${text.fontFamily}`;
       ctx.font = font;
@@ -209,16 +237,10 @@ export default function MockupCard({ mockup }: MockupCardProps) {
       ctx.textAlign = text.textAlign as CanvasTextAlign;
       ctx.textBaseline = 'middle';
 
-      // Add text outline for better visibility on any background
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-      ctx.lineWidth = 3;
+      // Add thin white outline for visibility on dark backgrounds
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.lineWidth = 2;
       ctx.strokeText(text.text, text.x, text.y);
-
-      // Add subtle shadow
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-      ctx.shadowBlur = 2;
-      ctx.shadowOffsetX = 1;
-      ctx.shadowOffsetY = 1;
 
       // Draw text
       ctx.fillText(text.text, text.x, text.y);
@@ -383,24 +405,40 @@ export default function MockupCard({ mockup }: MockupCardProps) {
    * Apply product transformations (position and scale) to the mockup
    * This re-composites the product with the frame using new position/scale
    */
-  const applyProductTransformations = async (canvas: HTMLCanvasElement): Promise<HTMLCanvasElement> => {
-    // For the first mockup, we need to extract the frame and product, then re-composite
-    // This is a simplified version - in production you'd want to store the original frame and product separately
+  const applyProductTransformations = async (): Promise<HTMLCanvasElement> => {
+    if (!isFirstMockup || !mockup.originalFrame || !mockup.originalProduct || !frameAnalysisRef.current) {
+      return previewCanvas!;
+    }
 
-    // Create a new canvas with the transformations applied
-    const transformedCanvas = document.createElement('canvas');
-    transformedCanvas.width = canvas.width;
-    transformedCanvas.height = canvas.height;
-    const ctx = transformedCanvas.getContext('2d')!;
+    setIsRecompositing(true);
 
-    // Draw the original canvas
-    ctx.drawImage(canvas, 0, 0);
+    try {
+      const currentPosition = productPosition || { x: 0.5, y: 0.5 };
+      const currentScale = productScale;
 
-    // If product position is set, we'd need to re-composite with the new position
-    // For now, this is a placeholder for the product transformation logic
-    // In a real implementation, you'd have access to the original frame and product images
+      console.log('🔄 Recompositing product:', {
+        position: currentPosition,
+        scale: currentScale
+      });
 
-    return transformedCanvas;
+      // Recomposite with new position and scale
+      const newCanvas = await recompositeProduct(
+        mockup.originalFrame,
+        mockup.originalProduct,
+        frameAnalysisRef.current,
+        currentPosition,
+        currentScale,
+        textElements,
+        undefined // No progress callback needed
+      );
+
+      return newCanvas;
+    } catch (error) {
+      console.error('❌ Recomposition failed:', error);
+      return previewCanvas!;
+    } finally {
+      setIsRecompositing(false);
+    }
   };
 
   /**
@@ -414,12 +452,21 @@ export default function MockupCard({ mockup }: MockupCardProps) {
 
     setIsDraggingProduct(true);
     const rect = previewContainerRef.current?.getBoundingClientRect();
-    if (rect) {
+    if (rect && mockup.originalFrame) {
+      // Convert current position from normalized (0-1) to pixels
+      const canvasWidth = rect.width; // Use displayed width
+      const canvasHeight = rect.height * (mockup.originalFrame.height / mockup.originalFrame.width);
+
+      const currentPixelX = (productPosition?.x || 0.5) * mockup.originalFrame.width;
+      const currentPixelY = (productPosition?.y || 0.5) * mockup.originalFrame.height;
+
       productDragStartRef.current = {
         clientX: e.clientX,
         clientY: e.clientY,
-        productX: productPosition?.x || 0.5,
-        productY: productPosition?.y || 0.5
+        productX: currentPixelX,
+        productY: currentPixelY,
+        canvasWidth: mockup.originalFrame.width,
+        canvasHeight: mockup.originalFrame.height
       };
     }
   };
@@ -440,17 +487,25 @@ export default function MockupCard({ mockup }: MockupCardProps) {
       if (!isDraggingProduct || !productDragStartRef.current || !isFirstMockup) return;
 
       const rect = previewContainerRef.current?.getBoundingClientRect();
-      if (!rect) return;
+      if (!rect || !mockup.originalFrame) return;
 
-      // Calculate position change in percentage (0-1)
-      const deltaX = (e.clientX - productDragStartRef.current.clientX) / rect.width;
-      const deltaY = (e.clientY - productDragStartRef.current.clientY) / rect.height;
+      // Calculate pixel-based movement (same direction as mouse)
+      const deltaX = e.clientX - productDragStartRef.current.clientX;
+      const deltaY = e.clientY - productDragStartRef.current.clientY;
 
-      // Calculate new position (center is 0.5, 0.5)
-      const newX = Math.max(0, Math.min(1, productDragStartRef.current.productX + deltaX));
-      const newY = Math.max(0, Math.min(1, productDragStartRef.current.productY + deltaY));
+      // Calculate new position in pixels
+      const newX = productDragStartRef.current.productX + deltaX;
+      const newY = productDragStartRef.current.productY + deltaY;
 
-      setProductPosition({ x: newX, y: newY });
+      // Constrain to canvas bounds (allow full range, not just safe zone)
+      const clampedX = Math.max(0, Math.min(mockup.originalFrame.width, newX));
+      const clampedY = Math.max(0, Math.min(mockup.originalFrame.height, newY));
+
+      // Convert to normalized coordinates (0-1) for storage
+      const normalizedX = clampedX / mockup.originalFrame.width;
+      const normalizedY = clampedY / mockup.originalFrame.height;
+
+      setProductPosition({ x: normalizedX, y: normalizedY });
     };
 
     const handleMouseUp = () => {
@@ -466,7 +521,7 @@ export default function MockupCard({ mockup }: MockupCardProps) {
         document.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [isDraggingProduct, isFirstMockup]);
+  }, [isDraggingProduct, isFirstMockup, mockup.originalFrame]);
 
   /**
    * Handle mouse down on text for dragging
@@ -616,8 +671,8 @@ export default function MockupCard({ mockup }: MockupCardProps) {
                 </div>
               </div>
             )}
-            {/* Text element overlays for dragging */}
-            {textElements.map((text) => {
+            {/* Text element overlays for dragging - only show when text editor is open */}
+            {showTextEditor && textElements.map((text) => {
               const canvas = previewCanvas!;
               const containerRef = previewContainerRef.current;
               if (!containerRef) return null;
@@ -808,10 +863,16 @@ export default function MockupCard({ mockup }: MockupCardProps) {
                 {/* Position Control */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Position: {productPosition ? `X: ${Math.round(productPosition.x * 100)}%, Y: ${Math.round(productPosition.y * 100)}%` : 'Default (Center)'}
+                    Position: {productPosition && mockup.originalFrame ?
+                      `X: ${Math.round(productPosition.x * mockup.originalFrame.width)}px, Y: ${Math.round(productPosition.y * mockup.originalFrame.height)}px` :
+                      'Default (Center)'
+                    }
                   </label>
                   <div className="text-xs text-gray-600 bg-white p-3 rounded border border-gray-200">
-                    <p>💡 Drag the product directly on the image to reposition it</p>
+                    <p>💡 Drag product anywhere on canvas - full range available!</p>
+                    <p className="mt-1 text-gray-500">
+                      Canvas: {mockup.originalFrame?.width}x{mockup.originalFrame?.height}px
+                    </p>
                   </div>
                 </div>
 

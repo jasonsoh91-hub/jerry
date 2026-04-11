@@ -61,6 +61,11 @@ export interface GeneratedMockup {
   name: string;
   description: string;
   config: VariationConfig;
+  // Store original images for dynamic recompositing (only for first mockup)
+  originalFrame?: HTMLImageElement;
+  originalProduct?: HTMLImageElement;
+  productPosition?: { x: number; y: number }; // Current product position (0-1)
+  productScale?: number; // Current product scale multiplier
 }
 
 export interface ProcessingProgress {

@@ -169,13 +169,23 @@ export async function generateMockups(
 
           console.log(`✅ Successfully generated variation: ${config.name}`);
 
-          mockups.push({
+          // For the first mockup, save original frame and product for dynamic recompositing
+          const mockupData: any = {
             id: `mockup-${mockups.length + 1}`,
             canvas,
             name: config.name,
             description: config.description,
             config
-          });
+          };
+
+          if (config.id === 'mockup') {
+            mockupData.originalFrame = frame.img;
+            mockupData.originalProduct = product.processed;
+            mockupData.productPosition = { x: 0.5, y: 0.5 }; // Default center position
+            mockupData.productScale = 1.0; // Default scale
+          }
+
+          mockups.push(mockupData);
         } catch (error) {
           console.error(`❌ Failed to generate variation ${config.name}:`, error);
           throw error; // Re-throw to stop generation
@@ -234,4 +244,121 @@ export function getVariationConfig(id: string): VariationConfig | undefined {
  */
 export function getAllVariationConfigs(): VariationConfig[] {
   return [...VARIATION_CONFIGS];
+}
+
+/**
+ * Recomposite product into frame with new position/scale
+ * Used for dynamic product dragging/scaling in the UI
+ */
+export async function recompositeProduct(
+  originalFrame: HTMLImageElement,
+  originalProduct: HTMLImageElement,
+  frameAnalysis: any,
+  newPosition: { x: number; y: number },
+  newScale: number,
+  textElements: any[],
+  onProgress?: (progress: ProcessingProgress) => void
+): Promise<HTMLCanvasElement> {
+  try {
+    // Create canvas at frame size
+    const canvas = document.createElement('canvas');
+    canvas.width = originalFrame.width;
+    canvas.height = originalFrame.height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+
+    if (!ctx) {
+      throw new Error('Failed to get canvas context');
+    }
+
+    console.log('🖼️  Recompositing with custom position:', {
+      canvasSize: `${canvas.width}x${canvas.height}`,
+      productSize: `${originalProduct.width}x${originalProduct.height}`,
+      position: newPosition,
+      scale: newScale
+    });
+
+    // Draw frame
+    ctx.drawImage(originalFrame, 0, 0);
+    console.log('✅ Frame drawn');
+
+    // Calculate product placement
+    const safeZone = frameAnalysis.safeZone;
+    const productAreaWidth = safeZone.width;
+    const productAreaHeight = safeZone.height;
+
+    // Calculate scale to fit product in area
+    const padding = 0.95;
+    const scaleX = (productAreaWidth * padding) / originalProduct.width;
+    const scaleY = (productAreaHeight * padding) / originalProduct.height;
+    const baseScale = Math.min(scaleX, scaleY);
+
+    // Apply custom scale multiplier
+    const finalScale = baseScale * newScale;
+
+    // Calculate product dimensions after scaling
+    const productWidth = originalProduct.width * finalScale;
+    const productHeight = originalProduct.height * finalScale;
+
+    // Position: Use normalized position (0-1) to position in safe zone
+    // newPosition is center position in canvas coordinates (0-1)
+    // Convert to pixel position
+    const productPixelX = newPosition.x * originalFrame.width;
+    const productPixelY = newPosition.y * originalFrame.height;
+
+    // Center product in safe zone, then apply position offset
+    const centerX = safeZone.x + (safeZone.width - productWidth) / 2;
+    const centerY = safeZone.y + (safeZone.height - productHeight) / 2;
+
+    // Allow product to move anywhere from its center position
+    // Calculate offset from center based on normalized position
+    const offsetX = (productPixelX - (originalFrame.width / 2)) * 2; // -1 to +1 range
+    const offsetY = (productPixelY - (originalFrame.height / 2)) * 2;
+
+    const x = centerX + offsetX;
+    const y = centerY + offsetY;
+
+    console.log('📍 Calculated position:', {
+      normalizedPos: newPosition,
+      pixelPos: { x: productPixelX, y: productPixelY },
+      centerPos: { x: centerX, y: centerY },
+      offset: { x: offsetX, y: offsetY },
+      finalPos: { x: Math.round(x), y: Math.round(y) }
+    });
+
+    // Draw product
+    ctx.drawImage(originalProduct, x, y, productWidth, productHeight);
+
+    // Apply text elements on top
+    if (textElements && textElements.length > 0) {
+      textElements.forEach(text => {
+        ctx.save();
+
+        // Clear any existing shadow settings
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+
+        const font = `${text.fontStyle} ${text.fontWeight} ${text.fontSize}px ${text.fontFamily}`;
+        ctx.font = font;
+        ctx.fillStyle = text.color;
+        ctx.textAlign = text.textAlign as CanvasTextAlign;
+        ctx.textBaseline = 'middle';
+
+        // Thin white outline for visibility on dark backgrounds
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.lineWidth = 2;
+        ctx.strokeText(text.text, text.x, text.y);
+
+        // Draw text
+        ctx.fillText(text.text, text.x, text.y);
+        ctx.restore();
+      });
+    }
+
+    return canvas;
+  } catch (error) {
+    console.error('❌ Recomposition failed:', error);
+    throw error;
+  }
 }
