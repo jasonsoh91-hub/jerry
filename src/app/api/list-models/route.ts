@@ -1,29 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// Known Gemini models available in the API
+const GEMINI_MODELS = [
+  {
+    name: 'gemini-2.0-flash',
+    displayName: 'Gemini 2.0 Flash',
+    description: 'Fast and efficient model for quick responses'
+  },
+  {
+    name: 'gemini-1.5-flash',
+    displayName: 'Gemini 1.5 Flash',
+    description: 'Fast and lightweight model'
+  },
+  {
+    name: 'gemini-1.5-pro',
+    displayName: 'Gemini 1.5 Pro',
+    description: 'Advanced model for complex tasks'
+  }
+];
 
 export async function POST(request: NextRequest) {
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
     console.log('🔍 Listing available models...');
     console.log('API Key present:', !!process.env.GEMINI_API_KEY);
 
-    // List available models
-    const models = await genAI.listModels();
-
-    console.log('✅ Available models:', models.length);
-    models.forEach(model => {
-      console.log(`  - ${model.name} (${model.displayName})`);
-    });
-
     return NextResponse.json({
       success: true,
-      count: models.length,
-      models: models.map(m => ({
-        name: m.name,
-        displayName: m.displayName,
-        description: m.description
-      }))
+      count: GEMINI_MODELS.length,
+      models: GEMINI_MODELS
     });
 
   } catch (error) {

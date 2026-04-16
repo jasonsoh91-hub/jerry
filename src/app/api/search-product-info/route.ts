@@ -176,8 +176,8 @@ function extractProductInfo(html: string, productName: string, query: string) {
       rows.forEach(row => {
         const cells = row.match(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi) || [];
         if (cells.length >= 2) {
-          const label = cleanText(cells[0]);
-          const value = cleanText(cells[1]);
+          const label = cleanText(cells[0] || '');
+          const value = cleanText(cells[1] || '');
           if (label && value && label.length > 2 && value.length > 2) {
             specifications.push(`${label}: ${value}`);
           }
@@ -192,7 +192,7 @@ function extractProductInfo(html: string, productName: string, query: string) {
     specListMatch.forEach(list => {
       const items = list.match(/<li[^>]*>(.*?)<\/li>/gi) || [];
       items.forEach(item => {
-        const cleaned = cleanText(item);
+        const cleaned = cleanText(item || '');
         if (cleaned && cleaned.length > 5) {
           specifications.push(cleaned);
         }
@@ -269,7 +269,7 @@ function extractProductInfo(html: string, productName: string, query: string) {
     brand: extractBrand(query, productName),
     category: extractCategory(query, productName),
     modelNumber: extractModelNumber(html, query),
-    warranty: extractWarranty(html) ? cleanText(extractWarranty(html)) : null,
+    warranty: extractWarranty(html) ? cleanText(extractWarranty(html) || '') : null,
     priceRange: extractPriceRange(html)
   };
 }
@@ -294,11 +294,11 @@ function extractTechnicalSpecs(html: string): string[] {
         const cells = row.match(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi) || [];
         if (cells.length >= 2) {
           // Extract just text content, no HTML
-          const label = cleanText(cells[0])
+          const label = cleanText(cells[0] || '')
             .replace(/<[^>]+>/g, '')
             .replace(/\s+/g, ' ')
             .trim();
-          const value = cleanText(cells[1])
+          const value = cleanText(cells[1] || '')
             .replace(/<[^>]+>/g, '')
             .replace(/\s+/g, ' ')
             .trim();
@@ -592,7 +592,7 @@ function generateFallbackInfo(searchData: any, query: string, productName: strin
       }
       // Extract potential features from snippets
       const sentences = snippet.split('. ');
-      features.push(...sentences.filter(s => s.length > 10));
+      features.push(...sentences.filter((s: string) => s.length > 10));
     }
   });
 

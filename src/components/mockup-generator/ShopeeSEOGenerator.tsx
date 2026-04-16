@@ -179,7 +179,7 @@ Review Strategy: ${generatedContent.conversionBoosters.reviewStrategy}
               value={productName}
               onChange={(e) => setProductName(e.target.value)}
               placeholder="e.g., Dell 24-inch Monitor SE2225HM"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 placeholder:text-gray-400"
             />
           </div>
 
@@ -190,7 +190,7 @@ Review Strategy: ${generatedContent.conversionBoosters.reviewStrategy}
               value={brand}
               onChange={(e) => setBrand(e.target.value)}
               placeholder="e.g., Dell"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 placeholder:text-gray-400"
             />
           </div>
 
@@ -201,7 +201,7 @@ Review Strategy: ${generatedContent.conversionBoosters.reviewStrategy}
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               placeholder="e.g., Computer & Accessories / Monitors"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 placeholder:text-gray-400"
             />
           </div>
 
@@ -212,7 +212,7 @@ Review Strategy: ${generatedContent.conversionBoosters.reviewStrategy}
               value={priceRange}
               onChange={(e) => setPriceRange(e.target.value)}
               placeholder="e.g., RM 300-500"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 placeholder:text-gray-400"
             />
           </div>
         </div>
@@ -224,7 +224,7 @@ Review Strategy: ${generatedContent.conversionBoosters.reviewStrategy}
             onChange={(e) => setKeyFeatures(e.target.value)}
             placeholder="24-inch Full HD display&#10;75Hz refresh rate&#10;AMD FreeSync support&#10;Eye care technology"
             rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900"
           />
         </div>
 
@@ -235,7 +235,7 @@ Review Strategy: ${generatedContent.conversionBoosters.reviewStrategy}
             value={targetAudience}
             onChange={(e) => setTargetAudience(e.target.value)}
             placeholder="e.g., Home office users, students, budget-conscious buyers"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900"
           />
         </div>
 
@@ -246,7 +246,7 @@ Review Strategy: ${generatedContent.conversionBoosters.reviewStrategy}
             onChange={(e) => setUniqueSellingPoint(e.target.value)}
             placeholder="e.g., Best value monitor in its class with premium features at budget price"
             rows={2}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900"
           />
         </div>
 
