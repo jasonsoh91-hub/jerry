@@ -219,7 +219,9 @@ function extractProductInfo(html: string, productName: string, query: string) {
         // Filter out HTML artifacts and too short/long items
         if (cleaned && cleaned.length > 15 && cleaned.length < 300 &&
             !cleaned.includes('{') && !cleaned.includes('function') &&
-            !cleaned.includes('style:')) {
+            !cleaned.includes('style:') && !cleaned.includes('background:') &&
+            !cleaned.includes('data-') && !cleaned.includes('aria-') &&
+            !cleaned.includes('/*') && !cleaned.includes('*/')) {
           features.push(cleaned);
         }
       });
@@ -256,18 +258,18 @@ function extractProductInfo(html: string, productName: string, query: string) {
   const weight = extractWeight(html);
 
   return {
-    productName: title,
-    description: longDescription || metaDescription || `Professional ${query} with premium quality and advanced features for modern users.`,
-    features: features.length > 0 ? [...new Set(features)].slice(0, 12) : generateDefaultFeatures(query),
+    productName: cleanText(title),
+    description: cleanText(longDescription || metaDescription || `Professional ${query} with premium quality and advanced features for modern users.`),
+    features: features.length > 0 ? [...new Set(features)].slice(0, 12).map(f => cleanText(f)) : generateDefaultFeatures(query),
     specifications: allSpecs.length > 0 ? allSpecs.slice(0, 20) : generateDefaultSpecs(query),
     technicalSpecs: techSpecs.length > 0 ? techSpecs : generateDefaultSpecs(query),
-    inTheBox: inTheBox.length > 0 ? inTheBox : undefined,
-    dimensions: dimensions,
-    weight: weight,
+    inTheBox: inTheBox.length > 0 ? inTheBox.map(item => cleanText(item)) : undefined,
+    dimensions: dimensions ? cleanText(dimensions) : null,
+    weight: weight ? cleanText(weight) : null,
     brand: extractBrand(query, productName),
     category: extractCategory(query, productName),
     modelNumber: extractModelNumber(html, query),
-    warranty: extractWarranty(html),
+    warranty: extractWarranty(html) ? cleanText(extractWarranty(html)) : null,
     priceRange: extractPriceRange(html)
   };
 }
@@ -301,9 +303,12 @@ function extractTechnicalSpecs(html: string): string[] {
             .replace(/\s+/g, ' ')
             .trim();
 
-          if (label && value && label.length > 2 && value.length > 2 &&
-              !label.includes('data-') && !value.includes('data-') &&
-              !label.includes('{') && !value.includes('{')) {
+          // Additional validation to avoid HTML artifacts
+          const isCleanLabel = !label.match(/[<>{}[\]()]/) && !label.includes('data-');
+          const isCleanValue = !value.match(/[<>{}[\]()]/) && !value.includes('data-');
+          const isReasonableLength = label.length > 2 && label.length < 100 && value.length > 2 && value.length < 200;
+
+          if (label && value && isCleanLabel && isCleanValue && isReasonableLength) {
             specs.push(`${label}: ${value}`);
           }
         }
@@ -349,7 +354,12 @@ function extractTechnicalSpecs(html: string): string[] {
         const value = cleanText(term[2])
           .replace(/<[^>]+>/g, '')
           .trim();
-        if (label && value && label.length > 2 && value.length > 2) {
+
+        // Validate the extracted text
+        const isCleanLabel = !label.match(/[<>{}[\]()]/) && label.length > 2 && label.length < 100;
+        const isCleanValue = !value.match(/[<>{}[\]()]/) && value.length > 2 && value.length < 200;
+
+        if (label && value && isCleanLabel && isCleanValue) {
           specs.push(`${label}: ${value}`);
         }
       });
@@ -404,11 +414,25 @@ function extractTechnicalSpecs(html: string): string[] {
   // Clean up the specs array
   return [...new Set(specs)]
     .filter(spec => {
-      // Remove specs with HTML artifacts
-      const hasHtml = /<[^>]+>|&nbsp;|data-|aria-|{[^}]*}/.test(spec);
+      // Remove specs with HTML artifacts and coding
+      const hasHtmlTags = /<[^>]+>/.test(spec);
+      const hasHtmlEntities = /&nbsp;|&amp;|&quot;|&lt;|&gt;/.test(spec);
+      const hasDataAttrs = /data-[a-z0-9-]+|aria-[a-z]+/.test(spec);
+      const hasCssProps = /[a-z-]+:\s*["']?[^"']*["']?;/.test(spec);
+      const hasBraces = /\{|\}/.test(spec);
+      const hasBrackets = /\[|\]|\(|\)/.test(spec);
+      const hasFunctions = /function|var|let|const|return/.test(spec);
+      const hasUrls = /url\(|http|https|src=/.test(spec);
+      const hasHexCodes = /[a-f0-9]{20,}/.test(spec);
+      const hasWeirdChars = /\\n|\\t|\\r/.test(spec);
       const tooShort = spec.length < 5;
       const tooLong = spec.length > 200;
-      return !hasHtml && !tooShort && !tooLong;
+      const looksLikeCode = /=>|=|===|{|}|function/.test(spec);
+
+      return !hasHtmlTags && !hasHtmlEntities && !hasDataAttrs && !hasCssProps &&
+             !hasBraces && !hasBrackets && !hasFunctions && !hasUrls &&
+             !hasHexCodes && !hasWeirdChars && !tooShort && !tooLong &&
+             !looksLikeCode;
     })
     .slice(0, 30);
 }
@@ -592,7 +616,9 @@ function generateFallbackInfo(searchData: any, query: string, productName: strin
 function cleanText(text: string): string {
   if (!text) return '';
 
-  return text
+  console.log('🧹 Cleaning text:', text.substring(0, 100) + '...');
+
+  let cleaned = text
     // Remove all HTML tags completely
     .replace(/<[^>]+>/g, '')
     // Decode HTML entities
@@ -602,24 +628,48 @@ function cleanText(text: string): string {
     .replace(/&apos;/g, "'")
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
-    // Remove CSS and JavaScript code
+    // Remove ALL CSS and JavaScript code more aggressively
     .replace(/\{[^}]*\}/g, '')
     .replace(/;[^}]*\}/g, '')
     .replace(/\([^\)]*\)/g, '')
-    // Remove common CSS property patterns
-    .replace(/\bcontent:\s*["'][^"']*["']/gi, '')
-    .replace(/\bbackground:\s*url\(.*?\)/gi, '')
-    .replace(/data-[a-z-]+:\s*["'][^"']*["']/gi, '')
-    .replace(/aria-[a-z-]+:\s*["'][^"']*["']/gi, '')
-    // Remove SVG and inline styles
-    .replace(/<svg[^>]*>.*?<\/svg>/gi, '')
+    // Remove all CSS property patterns (more comprehensive)
+    .replace(/[\w-]+:\s*["'][^"']*["'][^}]*;?/gi, '')
+    .replace(/[\w-]+:\s*url\([^)]*\)[^}]*;?/gi, '')
+    // Remove ALL attributes (data, aria, class, id, style, etc)
+    .replace(/\s[\w-]+=\s*["'][^"']*["']/gi, '')
+    // Remove inline styles and SVG
     .replace(/style=["'][^"']*["'][^>]*>.*?<\/style>/gi, '')
-    // Clean up whitespace and weird characters
+    .replace(/<svg[^>]*>.*?<\/svg>/gi, '')
+    // Remove ALL brackets, braces, and parentheses that might be code
+    .replace(/\[[^\]]*\]/g, '')
+    .replace(/\([^\)]*\)/g, '')
+    // Remove function calls and code patterns
+    .replace(/function\s*\([^)]*\)\s*\{[^}]*\}/gi, '')
+    .replace(/var\s+\w+\s*=\s*[^;]+;/gi, '')
+    .replace(/const\s+\w+\s*=\s*[^;]+;/gi, '')
+    .replace(/let\s+\w+\s*=\s*[^;]+;/gi, '')
+    // Remove hex codes and random strings
+    .replace(/[a-f0-9]{20,}/gi, '')
+    .replace(/\\u[0-9a-f]{4}/gi, '')
+    .replace(/\\x[0-9a-f]{2}/gi, '')
+    // Remove common HTML artifacts
+    .replace(/<\!\[CDATA\[.*?\]\]>/gi, '')
+    .replace(/<!--.*?-->/gi, '')
+    // Remove weird encoding artifacts
+    .replace(/\\[nrt]/g, ' ')
+    .replace(/\\'/g, "'")
+    // Remove special characters that might be code
+    .replace(/[|\\/^$*+?[\]]/g, '')
+    // Clean up whitespace
     .replace(/\s+/g, ' ')
     .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width characters
     .replace(/\\n/g, ' ')
     .replace(/\t/g, ' ')
     .trim();
+
+  console.log('✅ Cleaned text:', cleaned.substring(0, 100) + '...');
+
+  return cleaned;
 }
 
 function extractBrand(query: string, title: string): string {

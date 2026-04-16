@@ -5,6 +5,8 @@ import ProductUploader, { ProductImages, ProductView } from './ProductUploader';
 import FrameUploader from './FrameUploader';
 import GenerateButton from './GenerateButton';
 import MockupPreview from './MockupPreview';
+import AIMockupGenerator from './AIMockupGenerator';
+import ShopeeSEOGenerator from './ShopeeSEOGenerator';
 import { generateMockups } from '@/lib/mockupGenerator';
 import type { GeneratedMockup, ProcessingProgress, ProductInfo } from '@/lib/types';
 
@@ -129,6 +131,12 @@ export default function MockupGenerator() {
 
       {/* Mockup Preview */}
       {mockups.length > 0 && <MockupPreview mockups={mockups} />}
+
+      {/* AI Mockup Generator Section */}
+      <AIMockupGenerator selectedImages={productImages} />
+
+      {/* Shopee SEO Generator Section */}
+      <ShopeeSEOGenerator selectedImages={productImages} />
     </div>
   );
 }
