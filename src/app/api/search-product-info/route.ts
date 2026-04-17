@@ -862,7 +862,7 @@ function extractDellTechSpecs(html: string, productName: string, query: string) 
       const msValues = gtgMatches.map(match => {
         const numMatch = match.match(/(\d+(?:\.\d+)?)/);
         return numMatch ? parseFloat(numMatch[1]) : null;
-      }).filter(Boolean);
+      }).filter((val): val is number => val !== null);
 
       if (msValues.length >= 2) {
         // Found range (e.g., 5ms and 8ms)
