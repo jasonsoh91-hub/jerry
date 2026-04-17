@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import ProductUploader, { ProductImages, ProductView } from './ProductUploader';
+import ProductUploader, { ProductImages } from './ProductUploader';
 import FrameUploader from './FrameUploader';
 import GenerateButton from './GenerateButton';
 import MockupPreview from './MockupPreview';
@@ -12,10 +12,7 @@ import type { GeneratedMockup, ProcessingProgress, ProductInfo } from '@/lib/typ
 
 export default function MockupGenerator() {
   const [productImages, setProductImages] = useState<ProductImages>({
-    front: null,
-    rightSide: null,
-    leftSide: null,
-    rear: null
+    front: null
   });
   const [productInfo, setProductInfo] = useState<ProductInfo | null>(null);
   const [frameImages, setFrameImages] = useState<File[]>([]);
@@ -45,20 +42,12 @@ export default function MockupGenerator() {
         (p) => {
           setProgress(p);
           // Show detailed progress to user
-          if (p.percentage < 15) {
+          if (p.percentage < 25) {
             setProgress({ ...p, stage: '🎨 Removing background & detecting product...' });
-          } else if (p.percentage < 30) {
+          } else if (p.percentage < 50) {
             setProgress({ ...p, stage: '📐 Analyzing frame product areas...' });
-          } else if (p.percentage < 45) {
-            setProgress({ ...p, stage: '✨ Generating product mockup...' });
-          } else if (p.percentage < 60) {
-            setProgress({ ...p, stage: '📸 Preparing original product photo...' });
           } else if (p.percentage < 75) {
-            setProgress({ ...p, stage: '➡️  Creating side view (right)...' });
-          } else if (p.percentage < 85) {
-            setProgress({ ...p, stage: '⬅️  Creating side view (left)...' });
-          } else if (p.percentage < 95) {
-            setProgress({ ...p, stage: '🔙 Creating rear view...' });
+            setProgress({ ...p, stage: '✨ Generating product mockup...' });
           } else {
             setProgress({ ...p, stage: '🎉 Finalizing...' });
           }

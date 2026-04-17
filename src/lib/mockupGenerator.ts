@@ -5,14 +5,10 @@ import { processProductImage, analyzeFrame, compositeProductIntoFrame } from './
 
 export type ProductImages = {
   front: File | null;
-  rightSide: File | null;
-  leftSide: File | null;
-  rear: File | null;
 };
 
 /**
- * Configuration for the 5 automatic variations
- * Each variation uses a different product view
+ * Configuration for the single mockup variation
  */
 export const VARIATION_CONFIGS: VariationConfig[] = [
   {
@@ -24,42 +20,6 @@ export const VARIATION_CONFIGS: VariationConfig[] = [
     rotation: 0,
     shadow: { blur: 30, opacity: 0.25, offsetY: 12 },
     description: 'Professional product mockup with soft shadow'
-  },
-  {
-    id: 'original',
-    name: 'Original Product',
-    productView: 'front',
-    scale: 1.0,
-    position: { x: 0.5, y: 0.5 },
-    rotation: 0,
-    description: 'Original product photo with background removed'
-  },
-  {
-    id: 'side-right',
-    name: 'Side View - Right',
-    productView: 'rightSide',
-    scale: 1.0,
-    position: { x: 0.5, y: 0.5 },
-    rotation: 0,
-    description: 'Side view facing right'
-  },
-  {
-    id: 'side-left',
-    name: 'Side View - Left',
-    productView: 'leftSide',
-    scale: 1.0,
-    position: { x: 0.5, y: 0.5 },
-    rotation: 0,
-    description: 'Side view facing left'
-  },
-  {
-    id: 'rear-view',
-    name: 'Rear View',
-    productView: 'rear',
-    scale: 1.0,
-    position: { x: 0.5, y: 0.5 },
-    rotation: 0,
-    description: 'Rear view product photo'
   }
 ];
 
@@ -76,8 +36,8 @@ export async function generateMockups(
   const mockups: GeneratedMockup[] = [];
 
   try {
-    // 1. Process all available product images (background removal)
-    onProgress?.({ stage: 'Processing product images...', percentage: 10 });
+    // 1. Process product image (background removal)
+    onProgress?.({ stage: 'Processing product image...', percentage: 10 });
 
     const processedProducts: Record<string, any> = {};
 
@@ -85,33 +45,6 @@ export async function generateMockups(
     if (productImages.front) {
       console.log('Processing front view...');
       processedProducts.front = await processProductImage(productImages.front);
-    }
-
-    // Process right side view (optional)
-    if (productImages.rightSide) {
-      console.log('Processing right side view...');
-      processedProducts.rightSide = await processProductImage(productImages.rightSide);
-    } else if (productImages.front) {
-      console.log('Right side view not provided, using front view as fallback');
-      processedProducts.rightSide = processedProducts.front;
-    }
-
-    // Process left side view (optional)
-    if (productImages.leftSide) {
-      console.log('Processing left side view...');
-      processedProducts.leftSide = await processProductImage(productImages.leftSide);
-    } else if (productImages.front) {
-      console.log('Left side view not provided, using front view as fallback');
-      processedProducts.leftSide = processedProducts.front;
-    }
-
-    // Process rear view (optional)
-    if (productImages.rear) {
-      console.log('Processing rear view...');
-      processedProducts.rear = await processProductImage(productImages.rear);
-    } else if (productImages.front) {
-      console.log('Rear view not provided, using front view as fallback');
-      processedProducts.rear = processedProducts.front;
     }
 
     // 2. Load and analyze frames

@@ -1,16 +1,11 @@
 'use client';
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, X, Image as ImageIcon, Loader2, Wand2, Download, RefreshCw } from 'lucide-react';
-
-export type ProductView = 'front' | 'rightSide' | 'leftSide' | 'rear';
+import { Upload, X } from 'lucide-react';
 
 export interface ProductImages {
   front: File | null;
-  rightSide: File | null;
-  leftSide: File | null;
-  rear: File | null;
 }
 
 interface ProductUploaderProps {
@@ -18,74 +13,17 @@ interface ProductUploaderProps {
   selectedImages: ProductImages;
 }
 
-interface SingleViewUploaderProps {
-  view: ProductView;
-  label: string;
-  recommended: string;
-  onDrop: (view: ProductView) => (acceptedFiles: File[], rejectedFiles: any[]) => void;
-  onRemove: (view: ProductView) => void;
-  preview: string | null;
-}
+export default function ProductUploader({ onImagesSelect, selectedImages }: ProductUploaderProps) {
+  const [preview, setPreview] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-function SingleViewUploader({ view, label, recommended, onDrop, onRemove, preview }: SingleViewUploaderProps) {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.webp']
     },
     maxFiles: 1,
     maxSize: 10 * 1024 * 1024, // 10MB
-    onDrop: onDrop(view)
-  });
-
-  return (
-    <div className="bg-gray-50 rounded-lg p-4">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="font-semibold text-gray-900">{label}</h3>
-        <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">{recommended}</span>
-      </div>
-
-      {preview ? (
-        <div className="relative">
-          <img
-            src={preview}
-            alt={`${label} preview`}
-            className="w-full h-32 object-cover rounded-lg border border-gray-200"
-          />
-          <button
-            onClick={() => onRemove(view)}
-            className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-1 rounded-full shadow-md transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      ) : (
-        <div
-          {...getRootProps()}
-          className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
-            isDragActive ? 'border-blue-400 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
-          }`}
-        >
-          <input {...getInputProps()} />
-          <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-          <p className="text-xs text-gray-700 mb-1">Drag & drop or click to upload</p>
-          <p className="text-xs text-gray-500">JPG, PNG, WebP (max 10MB)</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default function ProductUploader({ onImagesSelect, selectedImages }: ProductUploaderProps) {
-  const [previews, setPreviews] = useState<Record<ProductView, string | null>>({
-    front: null,
-    rightSide: null,
-    leftSide: null,
-    rear: null
-  });
-  const [error, setError] = useState<string | null>(null);
-
-  const handleDrop = useCallback(
-    (view: ProductView) => (acceptedFiles: File[], rejectedFiles: any[]) => {
+    onDrop: (acceptedFiles, rejectedFiles) => {
       setError(null);
 
       if (rejectedFiles.length > 0) {
@@ -96,7 +34,7 @@ export default function ProductUploader({ onImagesSelect, selectedImages }: Prod
       if (acceptedFiles.length > 0) {
         const file = acceptedFiles[0];
 
-        console.log(`${view} view uploaded:`, {
+        console.log('Front view uploaded:', {
           name: file.name,
           type: file.type,
           size: file.size
@@ -109,28 +47,27 @@ export default function ProductUploader({ onImagesSelect, selectedImages }: Prod
 
         const reader = new FileReader();
         reader.onload = (e) => {
-          setPreviews(prev => ({ ...prev, [view]: e.target?.result as string }));
+          setPreview(e.target?.result as string);
         };
         reader.readAsDataURL(file);
 
-        onImagesSelect({ ...selectedImages, [view]: file });
+        onImagesSelect({ front: file });
       }
-    },
-    [selectedImages, onImagesSelect]
-  );
+    }
+  });
 
-  const handleRemove = (view: ProductView) => {
-    setPreviews(prev => ({ ...prev, [view]: null }));
+  const handleRemove = () => {
+    setPreview(null);
     setError(null);
-    onImagesSelect({ ...selectedImages, [view]: null });
+    onImagesSelect({ front: null });
   };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="mb-4">
-        <h2 className="text-xl font-semibold text-gray-900 mb-1">Product Images</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-1">Product Image</h2>
         <p className="text-sm text-gray-600">
-          Upload your product from different angles to generate product images
+          Upload your product front view to generate mockups
         </p>
       </div>
 
@@ -140,47 +77,39 @@ export default function ProductUploader({ onImagesSelect, selectedImages }: Prod
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <SingleViewUploader
-          view="front"
-          label="Front View"
-          recommended="Required • Main photo"
-          onDrop={handleDrop}
-          onRemove={handleRemove}
-          preview={previews.front}
-        />
-        <SingleViewUploader
-          view="rightSide"
-          label="Right Side"
-          recommended="Optional • Facing right"
-          onDrop={handleDrop}
-          onRemove={handleRemove}
-          preview={previews.rightSide}
-        />
-        <SingleViewUploader
-          view="leftSide"
-          label="Left Side"
-          recommended="Optional • Facing left"
-          onDrop={handleDrop}
-          onRemove={handleRemove}
-          preview={previews.leftSide}
-        />
-        <SingleViewUploader
-          view="rear"
-          label="Rear View"
-          recommended="Optional • Back angle"
-          onDrop={handleDrop}
-          onRemove={handleRemove}
-          preview={previews.rear}
-        />
-      </div>
+      {preview ? (
+        <div className="relative">
+          <img
+            src={preview}
+            alt="Product preview"
+            className="w-full h-64 object-cover rounded-lg border border-gray-200"
+          />
+          <button
+            onClick={handleRemove}
+            className="absolute top-4 right-4 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full shadow-md transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      ) : (
+        <div
+          {...getRootProps()}
+          className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-colors ${
+            isDragActive ? 'border-blue-400 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+          }`}
+        >
+          <input {...getInputProps()} />
+          <Upload className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+          <p className="text-base font-medium text-gray-700 mb-2">Drag & drop or click to upload</p>
+          <p className="text-sm text-gray-500">JPG, PNG, WebP (max 10MB)</p>
+        </div>
+      )}
 
       <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-xs text-blue-800">
-          <strong>💡 Tip:</strong> Upload the front view (required). Add optional right/left side and rear views for complete product angles.
+          <strong>💡 Tip:</strong> Upload a high-quality front view of your product for best results.
         </p>
       </div>
-
     </div>
   );
 }
