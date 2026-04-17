@@ -318,8 +318,8 @@ export async function analyzeFrame(
     height: height
   };
 
-  // Simple approach: divide image into regions and find the most transparent one
-  const regions = 4; // 4x4 grid
+  // Enhanced approach: divide image into finer grid for better precision
+  const regions = 8; // 8x8 grid for better precision
   const regionWidth = width / regions;
   const regionHeight = height / regions;
 
@@ -362,15 +362,122 @@ export async function analyzeFrame(
     }
   }
 
-  // Expand the best region slightly for better fit
+  // Expand the best region by merging adjacent white/transparent regions
+  let expandedRegion = { ...bestRegion };
+
+  // Try to expand horizontally and vertically to include adjacent white regions
+  const expansionThreshold = 0.7; // 70% white/transparent
+
+  // Expand to the right
+  for (let x = bestRegion.x + bestRegion.width; x < width; x += regionWidth) {
+    const regionX = Math.floor(x / regionWidth);
+    if (regionX >= regions) break;
+
+    let regionTransparency = 0;
+    for (let gridY = 0; gridY < regions; gridY++) {
+      const startX = Math.floor(regionX * regionWidth);
+      const startY = Math.floor(gridY * regionHeight);
+      const endX = Math.min(Math.floor((regionX + 1) * regionWidth), width);
+      const endY = Math.min(Math.floor((gridY + 1) * regionHeight), height);
+
+      let transparentPixels = 0;
+      let totalPixels = 0;
+
+      for (let py = startY; py < endY; py++) {
+        for (let px = startX; px < endX; px++) {
+          const i = (py * width + px) * 4;
+          const alpha = data[i + 3];
+          if (alpha < 128 || (data[i] > 240 && data[i + 1] > 240 && data[i + 2] > 240)) {
+            transparentPixels++;
+          }
+          totalPixels++;
+        }
+      }
+
+      if (transparentPixels / totalPixels > expansionThreshold) {
+        regionTransparency++;
+      }
+    }
+
+    if (regionTransparency > regions * 0.5) {
+      expandedRegion.width += regionWidth;
+    } else {
+      break;
+    }
+  }
+
+  // Expand downward
+  for (let y = bestRegion.y + bestRegion.height; y < height; y += regionHeight) {
+    const regionY = Math.floor(y / regionHeight);
+    if (regionY >= regions) break;
+
+    let regionTransparency = 0;
+    for (let gridX = 0; gridX < regions; gridX++) {
+      const startX = Math.floor(gridX * regionWidth);
+      const startY = Math.floor(regionY * regionHeight);
+      const endX = Math.min(Math.floor((gridX + 1) * regionWidth), width);
+      const endY = Math.min(Math.floor((regionY + 1) * regionHeight), height);
+
+      let transparentPixels = 0;
+      let totalPixels = 0;
+
+      for (let py = startY; py < endY; py++) {
+        for (let px = startX; px < endX; px++) {
+          const i = (py * width + px) * 4;
+          const alpha = data[i + 3];
+          if (alpha < 128 || (data[i] > 240 && data[i + 1] > 240 && data[i + 2] > 240)) {
+            transparentPixels++;
+          }
+          totalPixels++;
+        }
+      }
+
+      if (transparentPixels / totalPixels > expansionThreshold) {
+        regionTransparency++;
+      }
+    }
+
+    if (regionTransparency > regions * 0.5) {
+      expandedRegion.height += regionHeight;
+    } else {
+      break;
+    }
+  }
+
+  // Ensure expanded region doesn't exceed frame bounds
+  expandedRegion.width = Math.min(expandedRegion.width, width - expandedRegion.x);
+  expandedRegion.height = Math.min(expandedRegion.height, height - expandedRegion.y);
+
+  // Apply small margin for cleaner edge
+  const margin = Math.min(regionWidth, regionHeight) * 0.1; // 10% margin
   const safeZone = {
-    x: bestRegion.x,
-    y: bestRegion.y,
-    width: bestRegion.width,
-    height: bestRegion.height
+    x: expandedRegion.x + margin,
+    y: expandedRegion.y + margin,
+    width: expandedRegion.width - margin * 2,
+    height: expandedRegion.height - margin * 2
   };
 
-  console.log('Frame analysis - Product area:', safeZone);
+  console.log('✅ Auto-detected product area with enhanced detection:');
+  console.log('📐 Frame size:', width, 'x', height);
+  console.log('🎯 Best region:', {
+    x: Math.round(bestRegion.x),
+    y: Math.round(bestRegion.y),
+    width: Math.round(bestRegion.width),
+    height: Math.round(bestRegion.height)
+  });
+  console.log('📏 Expanded region:', {
+    x: Math.round(expandedRegion.x),
+    y: Math.round(expandedRegion.y),
+    width: Math.round(expandedRegion.width),
+    height: Math.round(expandedRegion.height)
+  });
+  console.log('🎯 Final safe zone with margins:', {
+    x: Math.round(safeZone.x),
+    y: Math.round(safeZone.y),
+    width: Math.round(safeZone.width),
+    height: Math.round(safeZone.height),
+    margin: Math.round(margin)
+  });
 
   return {
     width,
@@ -680,13 +787,15 @@ export async function compositeProductIntoFrame(
   const productAreaWidth = safeZone.width;
   const productAreaHeight = safeZone.height;
 
-  // Scale product to fill the product area more aggressively
-  const padding = 0.95; // Use 95% of the area (less padding = bigger product)
+  // Scale product to fill the product area aggressively
+  const padding = 0.85; // Use 85% of the area (more aggressive filling)
   const scaleX = (productAreaWidth * padding) / product.width;
   const scaleY = (productAreaHeight * padding) / product.height;
 
-  // Use the smaller scale to ensure product fits entirely
-  let scale = Math.min(scaleX, scaleY);
+  // Use the larger scale to fill more space, but cap at 1.3x the smaller scale
+  const minScale = Math.min(scaleX, scaleY);
+  const maxScale = Math.max(scaleX, scaleY);
+  let scale = Math.min(maxScale, minScale * 1.3); // Allow up to 30% larger for better filling
 
   // Apply variation-specific scale modifier
   scale = scale * config.scale;
@@ -697,16 +806,24 @@ export async function compositeProductIntoFrame(
     console.log('🔧 Applying manual scale:', frameAnalysis.manualScale);
   }
 
-  console.log('📊 Product scaling:', {
-    originalSize: `${product.width}x${product.height}`,
-    productArea: `${Math.round(productAreaWidth)}x${Math.round(productAreaHeight)}`,
+  console.log('📊 Enhanced product scaling for better space utilization:');
+  console.log('📦 Product size:', `${product.width}x${product.height}`);
+  console.log('🎯 Product area:', `${Math.round(productAreaWidth)}x${Math.round(productAreaHeight)}`);
+  console.log('📏 Scale calculations:', {
+    padding: `${padding * 100}%`,
     scaleX: scaleX.toFixed(3),
     scaleY: scaleY.toFixed(3),
-    chosenScale: Math.min(scaleX, scaleY).toFixed(3),
+    minScale: Math.min(scaleX, scaleY).toFixed(3),
+    maxScale: Math.max(scaleX, scaleY).toFixed(3),
+    chosenScale: scale.toFixed(3),
     variationScale: config.scale,
     manualScale: frameAnalysis.manualScale || 1.0,
-    finalScale: scale.toFixed(3),
-    finalSize: `${Math.round(product.width * scale)}x${Math.round(product.height * scale)}`
+    finalScale: scale.toFixed(3)
+  });
+  console.log('📐 Final product size:', `${Math.round(product.width * scale)}x${Math.round(product.height * scale)}`);
+  console.log('📊 Space utilization:', {
+    widthFill: `${Math.round((product.width * scale / productAreaWidth) * 100)}%`,
+    heightFill: `${Math.round((product.height * scale / productAreaHeight) * 100)}%`
   });
 
   // Log configuration details
