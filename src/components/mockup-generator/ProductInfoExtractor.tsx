@@ -8,6 +8,7 @@ interface ProductInfo {
   briefName: string;
   size: string;
   resolution: string;
+  responseTime: string;
   refreshRate: string;
   ports: string;
   warranty: string;
@@ -24,6 +25,7 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
     briefName: '',
     size: '',
     resolution: '',
+    responseTime: '',
     refreshRate: '',
     ports: '',
     warranty: ''
@@ -90,6 +92,7 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
           briefName: info.briefName || generateBriefName(productName, extractedModel),
           size: info.size || '',
           resolution: info.resolution || '',
+          responseTime: info.responseTime || '',
           refreshRate: info.refreshRate || '',
           ports: info.ports || '',
           warranty: info.warranty || ''
@@ -106,6 +109,7 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
           briefName: generateBriefName(productName, extractedModel),
           size: '',
           resolution: '',
+          responseTime: '',
           refreshRate: '',
           ports: '',
           warranty: ''
@@ -126,6 +130,7 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
         briefName: generateBriefName(productName, extractedModel),
         size: '',
         resolution: '',
+        responseTime: '',
         refreshRate: '',
         ports: '',
         warranty: ''
@@ -277,24 +282,38 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
             />
           </div>
 
-          {/* 5. Refresh Rate */}
+          {/* 5. Response Time */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              5. Refresh Rate <span className="text-xs text-gray-500">(Hz)</span>
+              5. Response Time <span className="text-xs text-gray-500">(ms)</span>
+            </label>
+            <input
+              type="text"
+              value={productInfo.responseTime}
+              onChange={(e) => updateField('responseTime', e.target.value)}
+              placeholder="e.g., 5-8ms"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+            />
+          </div>
+
+          {/* 6. Refresh Rate */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              6. Refresh Rate <span className="text-xs text-gray-500">(Hz)</span>
             </label>
             <input
               type="text"
               value={productInfo.refreshRate}
               onChange={(e) => updateField('refreshRate', e.target.value)}
-              placeholder="e.g., 75Hz"
+              placeholder="e.g., 100Hz"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             />
           </div>
 
-          {/* 6. Compatible Ports */}
+          {/* 7. Compatible Ports */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              6. Compatible Ports <span className="text-xs text-gray-500">(connection types)</span>
+              7. Compatible Ports <span className="text-xs text-gray-500">(connection types)</span>
             </label>
             <input
               type="text"
@@ -305,10 +324,10 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
             />
           </div>
 
-          {/* 7. Warranty */}
+          {/* 8. Warranty */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              7. Warranty <span className="text-xs text-gray-500">(warranty period)</span>
+              8. Warranty <span className="text-xs text-gray-500">(warranty period)</span>
             </label>
             <input
               type="text"

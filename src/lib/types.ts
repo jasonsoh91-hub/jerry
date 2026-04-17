@@ -16,6 +16,7 @@ export interface ProductInfo {
   briefName: string;
   size: string;
   resolution: string;
+  responseTime: string;
   refreshRate: string;
   ports: string;
   warranty: string;

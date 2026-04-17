@@ -540,6 +540,7 @@ export function drawProductInfoOverlay(
     hasProductInfo: !!productInfo,
     showProductInfo: config?.showProductInfo,
     model: productInfo?.model,
+    briefName: productInfo?.briefName,
     canvasSize: `${canvas.width}x${canvas.height}`
   });
 
@@ -585,7 +586,277 @@ export function drawProductInfoOverlay(
     console.log('⚠️ No model found in productInfo:', productInfo);
   }
 
-  console.log('✅ Model text overlay complete');
+  // Draw brief name at specified position with text wrapping
+  if (productInfo.briefName) {
+    ctx.save();
+
+    const briefText = productInfo.briefName;
+    const briefX = 6; // Moved another 20px left (from 26)
+    const briefY = 80; // Moved 10px up (from 90)
+    const briefFontSize = 20;
+    const briefColor = '#3a1f92'; // Purple color
+    const maxWidth = 240; // Wrap text if it exceeds this X position (changed from 250)
+    const lineHeight = 24; // Line height for wrapped text
+
+    console.log(`✏️ Drawing brief name "${briefText}" at X:${briefX}, Y:${briefY}`);
+
+    // Use Orbitron font (Google Font), fallback to sci-fi and system fonts
+    // Added "900" font weight for extra bold/thick appearance
+    const briefFont = `900 ${briefFontSize}px "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
+    ctx.font = briefFont;
+    ctx.fillStyle = briefColor;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+
+    // Add subtle white outline for better visibility
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 3;
+
+    // Wrap text if it exceeds maxWidth
+    const words = briefText.split(' ');
+    let line = '';
+    let currentY = briefY;
+
+    for (let i = 0; i < words.length; i++) {
+      const testLine = line + words[i] + ' ';
+      const metrics = ctx.measureText(testLine);
+      const testWidth = metrics.width;
+
+      if (testWidth > maxWidth && i > 0) {
+        // Draw current line with outline and start new one
+        ctx.strokeText(line.trim(), briefX, currentY);
+        ctx.fillText(line.trim(), briefX, currentY);
+        line = words[i] + ' ';
+        currentY += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    // Draw last line with outline
+    ctx.strokeText(line.trim(), briefX, currentY);
+    ctx.fillText(line.trim(), briefX, currentY);
+
+    ctx.restore();
+    console.log(`✅ Brief name "${briefText}" drawn at X:${briefX}, Y:${briefY} with font "Orbitron" size ${briefFontSize} - Color: ${briefColor}`);
+  }
+
+  // Draw size at specified position with text wrapping (same column as brief name)
+  if (productInfo.size) {
+    ctx.save();
+
+    const sizeText = productInfo.size;
+    const sizeX = 66; // Moved left 10px (from 76)
+    const sizeY = 144; // Moved up 3px (from 147)
+    const sizeFontSize = 20;
+    const sizeColor = '#FFFFFF'; // Changed to white
+    const maxWidth = 240; // Same wrapping limit as brief name
+    const lineHeight = 24; // Line height for wrapped text
+
+    console.log(`✏️ Drawing size "${sizeText}" at X:${sizeX}, Y:${sizeY}`);
+
+    // Use Orbitron font (Google Font), fallback to sci-fi and system fonts
+    // Added "900" font weight for extra bold/thick appearance
+    const sizeFont = `900 ${sizeFontSize}px "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
+    ctx.font = sizeFont;
+    ctx.fillStyle = sizeColor;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+
+    // Add black outline for better visibility on light backgrounds
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.lineWidth = 3;
+
+    // Wrap text if it exceeds maxWidth
+    const words = sizeText.split(' ');
+    let line = '';
+    let currentY = sizeY;
+
+    for (let i = 0; i < words.length; i++) {
+      const testLine = line + words[i] + ' ';
+      const metrics = ctx.measureText(testLine);
+      const testWidth = metrics.width;
+
+      if (testWidth > maxWidth && i > 0) {
+        // Draw current line with outline and start new one
+        ctx.strokeText(line.trim(), sizeX, currentY);
+        ctx.fillText(line.trim(), sizeX, currentY);
+        line = words[i] + ' ';
+        currentY += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    // Draw last line with outline
+    ctx.strokeText(line.trim(), sizeX, currentY);
+    ctx.fillText(line.trim(), sizeX, currentY);
+
+    ctx.restore();
+    console.log(`✅ Size "${sizeText}" drawn at X:${sizeX}, Y:${sizeY} with font "Orbitron" size ${sizeFontSize} - Color: ${sizeColor}`);
+  }
+
+  // Draw resolution at specified position with text wrapping (same column as size)
+  if (productInfo.resolution) {
+    ctx.save();
+
+    const resolutionText = productInfo.resolution;
+    const resolutionX = 16; // Moved left 50px (from 66)
+    const resolutionY = 189; // Moved down 30px (from 159)
+    const resolutionFontSize = 20;
+    const resolutionColor = '#FFFFFF'; // White color like size
+    const maxWidth = 240; // Same wrapping limit
+    const lineHeight = 24; // Line height for wrapped text
+
+    console.log(`✏️ Drawing resolution "${resolutionText}" at X:${resolutionX}, Y:${resolutionY}`);
+
+    // Use Orbitron font (Google Font), fallback to sci-fi and system fonts
+    // Added "900" font weight for extra bold/thick appearance
+    const resolutionFont = `900 ${resolutionFontSize}px "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
+    ctx.font = resolutionFont;
+    ctx.fillStyle = resolutionColor;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+
+    // Add black outline for better visibility on light backgrounds
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.lineWidth = 3;
+
+    // Wrap text if it exceeds maxWidth
+    const words = resolutionText.split(' ');
+    let line = '';
+    let currentY = resolutionY;
+
+    for (let i = 0; i < words.length; i++) {
+      const testLine = line + words[i] + ' ';
+      const metrics = ctx.measureText(testLine);
+      const testWidth = metrics.width;
+
+      if (testWidth > maxWidth && i > 0) {
+        // Draw current line with outline and start new one
+        ctx.strokeText(line.trim(), resolutionX, currentY);
+        ctx.fillText(line.trim(), resolutionX, currentY);
+        line = words[i] + ' ';
+        currentY += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    // Draw last line with outline
+    ctx.strokeText(line.trim(), resolutionX, currentY);
+    ctx.fillText(line.trim(), resolutionX, currentY);
+
+    ctx.restore();
+    console.log(`✅ Resolution "${resolutionText}" drawn at X:${resolutionX}, Y:${resolutionY} with font "Orbitron" size ${resolutionFontSize} - Color: ${resolutionColor}`);
+  }
+
+  // Draw response time at specified position with text wrapping (same column as resolution)
+  if (productInfo.responseTime) {
+    ctx.save();
+
+    const responseTimeText = productInfo.responseTime;
+    const responseTimeX = 76; // Moved right 10px (from 66)
+    const responseTimeY = 234; // Moved down 10px (from 224)
+    const responseTimeFontSize = 20;
+    const responseTimeColor = '#FFFFFF'; // White color like resolution
+    const maxWidth = 240; // Same wrapping limit
+    const lineHeight = 24; // Line height for wrapped text
+
+    console.log(`✏️ Drawing response time "${responseTimeText}" at X:${responseTimeX}, Y:${responseTimeY}`);
+
+    // Use Orbitron font (Google Font), fallback to sci-fi and system fonts
+    // Added "900" font weight for extra bold/thick appearance
+    const responseTimeFont = `900 ${responseTimeFontSize}px "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
+    ctx.font = responseTimeFont;
+    ctx.fillStyle = responseTimeColor;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+
+    // Add black outline for better visibility on light backgrounds
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.lineWidth = 3;
+
+    // Wrap text if it exceeds maxWidth
+    const words = responseTimeText.split(' ');
+    let line = '';
+    let currentY = responseTimeY;
+
+    for (let i = 0; i < words.length; i++) {
+      const testLine = line + words[i] + ' ';
+      const metrics = ctx.measureText(testLine);
+      const testWidth = metrics.width;
+
+      if (testWidth > maxWidth && i > 0) {
+        // Draw current line with outline and start new one
+        ctx.strokeText(line.trim(), responseTimeX, currentY);
+        ctx.fillText(line.trim(), responseTimeX, currentY);
+        line = words[i] + ' ';
+        currentY += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    // Draw last line with outline
+    ctx.strokeText(line.trim(), responseTimeX, currentY);
+    ctx.fillText(line.trim(), responseTimeX, currentY);
+
+    ctx.restore();
+    console.log(`✅ Response Time "${responseTimeText}" drawn at X:${responseTimeX}, Y:${responseTimeY} with font "Orbitron" size ${responseTimeFontSize} - Color: ${responseTimeColor}`);
+  }
+
+  // Draw refresh rate at specified position with text wrapping (same column as response time)
+  if (productInfo.refreshRate) {
+    ctx.save();
+
+    const refreshRateText = productInfo.refreshRate;
+    const refreshRateX = 76; // Same X as response time
+    const refreshRateY = 294; // Moved down 10px (from 284)
+    const refreshRateFontSize = 20;
+    const refreshRateColor = '#FFFFFF'; // White color like response time
+    const maxWidth = 240; // Same wrapping limit
+    const lineHeight = 24; // Line height for wrapped text
+
+    console.log(`✏️ Drawing refresh rate "${refreshRateText}" at X:${refreshRateX}, Y:${refreshRateY}`);
+
+    // Use Orbitron font (Google Font), fallback to sci-fi and system fonts
+    // Added "900" font weight for extra bold/thick appearance
+    const refreshRateFont = `900 ${refreshRateFontSize}px "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
+    ctx.font = refreshRateFont;
+    ctx.fillStyle = refreshRateColor;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+
+    // Add black outline for better visibility on light backgrounds
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.lineWidth = 3;
+
+    // Wrap text if it exceeds maxWidth
+    const words = refreshRateText.split(' ');
+    let line = '';
+    let currentY = refreshRateY;
+
+    for (let i = 0; i < words.length; i++) {
+      const testLine = line + words[i] + ' ';
+      const metrics = ctx.measureText(testLine);
+      const testWidth = metrics.width;
+
+      if (testWidth > maxWidth && i > 0) {
+        // Draw current line with outline and start new one
+        ctx.strokeText(line.trim(), refreshRateX, currentY);
+        ctx.fillText(line.trim(), refreshRateX, currentY);
+        line = words[i] + ' ';
+        currentY += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    // Draw last line with outline
+    ctx.strokeText(line.trim(), refreshRateX, currentY);
+    ctx.fillText(line.trim(), refreshRateX, currentY);
+
+    ctx.restore();
+    console.log(`✅ Refresh Rate "${refreshRateText}" drawn at X:${refreshRateX}, Y:${refreshRateY} with font "Orbitron" size ${refreshRateFontSize} - Color: ${refreshRateColor}`);
+  }
+
+  console.log('✅ Product info overlay complete');
 }
 
 /**

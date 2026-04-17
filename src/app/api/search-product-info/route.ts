@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
             const hasCriticalSpecs = productInfo.technicalSpecs &&
               productInfo.technicalSpecs.some((spec: string) =>
                 spec.includes('Screen Size:') || spec.includes('Resolution:') ||
-                spec.includes('Refresh Rate:') || spec.includes('Ports:')
+                spec.includes('Response Time:') || spec.includes('Ports:')
               );
 
             if (!hasCriticalSpecs) {
@@ -208,6 +208,7 @@ export async function POST(request: NextRequest) {
                   technicalSpecs: [
                     aiInfo.size ? `Screen Size: ${aiInfo.size}` : '',
                     aiInfo.resolution ? `Resolution: ${aiInfo.resolution}` : '',
+                    aiInfo.responseTime ? `Response Time: ${aiInfo.responseTime}` : '',
                     aiInfo.refreshRate ? `Refresh Rate: ${aiInfo.refreshRate}` : '',
                     aiInfo.ports ? `Ports: ${aiInfo.ports}` : '',
                     aiInfo.warranty ? `Warranty: ${aiInfo.warranty}` : ''
@@ -275,17 +276,18 @@ function convertToNewFormat(oldInfo: any, query: string, model?: string) {
   // Check if technical specs are already well-formatted (from AI extraction)
   const hasAIFormat = oldInfo.technicalSpecs && oldInfo.technicalSpecs.some((spec: string) =>
     spec.includes('Screen Size:') || spec.includes('Resolution:') ||
-    spec.includes('Refresh Rate:') || spec.includes('Ports:') ||
-    spec.includes('Warranty:')
+    spec.includes('Response Time:') || spec.includes('Refresh Rate:') ||
+    spec.includes('Ports:') || spec.includes('Warranty:')
   );
 
-  let size, resolution, refreshRate, ports, warranty;
+  let size, resolution, responseTime, refreshRate, ports, warranty;
 
   if (hasAIFormat) {
     // Extract from already-formatted AI data
     console.log('✅ Using AI-formatted specs');
     size = extractValueFromSpecs(oldInfo.technicalSpecs, 'Screen Size');
     resolution = extractValueFromSpecs(oldInfo.technicalSpecs, 'Resolution');
+    responseTime = extractValueFromSpecs(oldInfo.technicalSpecs, 'Response Time');
     refreshRate = extractValueFromSpecs(oldInfo.technicalSpecs, 'Refresh Rate');
     ports = extractValueFromSpecs(oldInfo.technicalSpecs, 'Ports');
     warranty = extractValueFromSpecs(oldInfo.technicalSpecs, 'Warranty');
@@ -299,8 +301,8 @@ function convertToNewFormat(oldInfo: any, query: string, model?: string) {
     resolution = extractFromSpecs(oldInfo.technicalSpecs, 'resolution', query) ||
               extractFromSpecs(oldInfo.specifications, 'resolution', query);
 
-    refreshRate = extractFromSpecs(oldInfo.technicalSpecs, 'refreshRate', query) ||
-               extractFromSpecs(oldInfo.specifications, 'refreshRate', query);
+    responseTime = extractFromSpecs(oldInfo.technicalSpecs, 'responseTime', query) ||
+               extractFromSpecs(oldInfo.specifications, 'responseTime', query);
 
     ports = extractFromSpecs(oldInfo.technicalSpecs, 'ports', query) ||
           extractFromSpecs(oldInfo.specifications, 'ports', query);
@@ -317,6 +319,7 @@ function convertToNewFormat(oldInfo: any, query: string, model?: string) {
       briefName: formatBriefName(oldInfo.productName || oldInfo.name || generateBriefNameFromQuery(query), query),
       size: size,
       resolution: resolution,
+      responseTime: responseTime,
       refreshRate: refreshRate,
       ports: ports,
       warranty: warranty
@@ -410,7 +413,7 @@ function extractFromSpecs(specs: string[], type: string, query: string = ''): st
   const patterns = {
     size: [/(\d+\.?\d*)\s*(?:inch|inches|'|\\")/i],
     resolution: [/(\d{3,4})\s*[xX]\s*(\d{3,4})/i, /(1920\s*[xX]\s*1080|2560\s*[xX]\s*1440|3840\s*[xX]\s*2160)/i],
-    refreshRate: [/(\d+)\s*(?:Hz|hertz)/i],
+    responseTime: [/(\d+(?:\.\d+)?)\s*(?:to|-)\s*(\d+(?:\.\d+)?)\s*ms/i, /(\d+(?:\.\d+)?)\s*ms/i, /response\s*time[^.]{0,50}?(\d+(?:\.\d+)?)\s*ms/i],
     ports: [
       /(?:ports?|connectors?|interfaces?)?\s*[:=]\s*([^.,;\n]+)/i,
       /(HDMI|DisplayPort|VGA|DVI|USB[-\s]?C|Thunderbolt).*?(?:port|connector|interface)?/gi,
@@ -595,7 +598,7 @@ function extractSpecImproved(specs: string[], type: string): string {
       /(?:resolution)?\s*[:=]\s*(\d{3,4}\s*[xX]\s*\d{3,4})/i,
       /(1920\s*[xX]\s*1080|2560\s*[xX]\s*1440|3840\s*[xX]\s*2160)/i
     ],
-    refreshRate: [
+    responseTime: [
       /(\d+)\s*(?:Hz|hertz)/i,
       /(?:refresh|rate)?\s*[:=]\s*(\d+)\s*(?:Hz|hertz)/i,
       /(\d+)\s*(?:Hz).*refresh/i
@@ -688,6 +691,7 @@ function extractDellTechSpecs(html: string, productName: string, query: string) 
   const specs: any = {
     size: '',
     resolution: '',
+    responseTime: '',
     refreshRate: '',
     ports: '',
     warranty: ''
@@ -726,11 +730,11 @@ function extractDellTechSpecs(html: string, productName: string, query: string) 
                 }
               }
 
-              if (label.includes('refresh rate')) {
-                const hzMatch = value.match(/(\d+)\s*(?:Hz|hertz)/i);
-                if (hzMatch && !specs.refreshRate) {
-                  specs.refreshRate = `${hzMatch[1]}Hz`;
-                  console.log(`✅ Refresh Rate from JSON-LD: ${specs.refreshRate}`);
+              if (label.includes('response time')) {
+                const msMatch = value.match(/(\d+(?:\.\d+)?)\s*(?:to|-)\s*(\d+(?:\.\d+)?)\s*ms/i);
+                if (msMatch && !specs.responseTime) {
+                  specs.responseTime = `${msMatch[1]}-${msMatch[2]}ms`;
+                  console.log(`✅ Response Time from JSON-LD: ${specs.responseTime}`);
                 }
               }
 
@@ -791,41 +795,121 @@ function extractDellTechSpecs(html: string, productName: string, query: string) 
       /full\s*hd|fhd|1920\s*x\s*1080|1080p/gi
     ];
 
+    // Extract resolution designation (FHD, QHD, 4K, UHD, etc.)
+    const designationPatterns = [
+      /\b(FHD|Full\s*HD|Full\sHD)\b/gi,
+      /\b(QHD|Quad\s*HD)\b/gi,
+      /\b(4K|Ultra\s*HD|UHD|Ultra\sHD)\b/gi,
+      /\b(2K|1440p)\b/gi,
+      /\b(8K)\b/gi
+    ];
+
     for (const pattern of resolutionPatterns) {
       const match = relevantText.match(pattern);
       if (match && !specs.resolution) {
+        let resolution = '';
+        let designation = '';
+
+        // Extract base resolution numbers
         if (match[0].toLowerCase().includes('full hd') || match[0].toLowerCase().includes('fhd') || match[0].toLowerCase().includes('1080p')) {
-          specs.resolution = '1920 x 1080';
-          console.log(`✅ Resolution from ${targetModel} section (FHD): ${specs.resolution}`);
+          resolution = '1920 x 1080';
+          designation = 'FHD';
         } else if (match[1] && match[2]) {
-          specs.resolution = `${match[1]} x ${match[2]}`;
-          console.log(`✅ Resolution from ${targetModel} section: ${specs.resolution}`);
+          resolution = `${match[1]} x ${match[2]}`;
+
+          // Look for designation in the surrounding text (within 200 characters)
+          const matchIndex = relevantText.indexOf(match[0]);
+          const contextStart = Math.max(0, matchIndex - 100);
+          const contextEnd = Math.min(relevantText.length, matchIndex + match[0].length + 100);
+          const context = relevantText.substring(contextStart, contextEnd);
+
+          console.log(`🔍 Searching for designation in context (${context.length} chars around "${match[0]}")`);
+
+          // Try to find designation in context
+          for (const designPattern of designationPatterns) {
+            const designMatch = context.match(designPattern);
+            if (designMatch) {
+              designation = designMatch[0].toUpperCase().replace(/\s+/g, '');
+              if (designation === 'FULLHD') designation = 'FHD';
+              if (designation === 'QUADHD') designation = 'QHD';
+              if (designation === 'ULTRAHD' || designation === 'ULTRAHD') designation = '4K';
+              console.log(`✅ Found designation "${designation}" from pattern:`, designPattern);
+              break;
+            }
+          }
+
+          if (!designation) {
+            console.log(`⚠️ No designation found in context around "${match[0]}"`);
+          }
         }
+
+        // Combine resolution with designation
+        specs.resolution = designation ? `${resolution} ${designation}` : resolution;
+        console.log(`✅ Resolution from ${targetModel} section: ${specs.resolution}${designation ? ` (with designation: ${designation})` : ''}`);
         break;
       }
     }
 
-    // Extract refresh rate from relevant text only - look for Hz mentions near our model
-    const hzPatterns = [
-      new RegExp(`${targetModel}[^.]{0,200}?(\\d+)\\s*(?:Hz|hertz)`, 'gi'),
-      new RegExp(`${targetModel}[^.]{0,300}?(\\d+)\\s*Hz`, 'gi')
-    ];
+    // Extract response time from relevant text only - look for ms mentions near our model
+    // First, try to find the Response Time Details section (Dell format)
+    const responseTimeSection = textContent.match(/Response\s*Time\s*Details[^.]{0,500}/gi);
 
-    for (const pattern of hzPatterns) {
-      const match = relevantText.match(pattern);
-      if (match && !specs.refreshRate) {
-        const hz = parseInt(match[1]);
-        if (hz >= 60 && hz <= 240) {
-          specs.refreshRate = `${hz}Hz`;
-          console.log(`✅ Refresh Rate from ${targetModel} section: ${specs.refreshRate}`);
-          break;
+    if (responseTimeSection && !specs.responseTime) {
+      console.log('✅ Found Response Time Details section');
+
+      // Extract all ms GTG values from the section
+      const gtgMatches = responseTimeSection[0].match(/(\d+(?:\.\d+)?)\s*ms\s*GTG/gi) || [];
+      const msValues = gtgMatches.map(match => {
+        const numMatch = match.match(/(\d+(?:\.\d+)?)/);
+        return numMatch ? parseFloat(numMatch[1]) : null;
+      }).filter(Boolean);
+
+      if (msValues.length >= 2) {
+        // Found range (e.g., 5ms and 8ms)
+        const minMs = Math.min(...msValues);
+        const maxMs = Math.max(...msValues);
+        specs.responseTime = `${minMs}-${maxMs}ms`;
+        console.log(`✅ Response Time from GTG range: ${specs.responseTime}`);
+      } else if (msValues.length === 1) {
+        // Found single value
+        specs.responseTime = `${msValues[0]}ms`;
+        console.log(`✅ Response Time from single GTG value: ${specs.responseTime}`);
+      }
+    }
+
+    // Fallback: Try other patterns if not found
+    if (!specs.responseTime) {
+      const responseTimePatterns = [
+        new RegExp(`${targetModel}[^.]{0,300}?(\\d+(?:\\.\\d+)?|-\\d+)\\s*(?:ms|milliseconds|millisecond)`, 'gi'),
+        /(\d+(?:\.\d+)?\s*(?:to|-)\s*\d+(?:\.\d+)?)\s*ms/gi,
+        /response\s*time[^.]{0,100}?(\d+(?:\.\d+)?)\s*ms/gi
+      ];
+
+      for (const pattern of responseTimePatterns) {
+        const match = relevantText.match(pattern);
+        if (match && !specs.responseTime) {
+          // Extract the response time value
+          let responseTime = match[1] || match[0];
+          // Clean up the format
+          responseTime = responseTime.replace(/(\d+(?:\.\d+)?)\s*(?:to|-)\s*(\d+(?:\.\d+)?)/, '$1-$2');
+          responseTime = responseTime.replace(/\s*ms.*/i, 'ms');
+          responseTime = responseTime.replace(/milliseconds?/gi, 'ms');
+          responseTime = responseTime.trim();
+
+          // Validate it's a reasonable response time (1-20ms range)
+          const msValue = parseFloat(responseTime.replace(/-.*/, '').replace(/[^\d.]/g, ''));
+          if (msValue >= 1 && msValue <= 20) {
+            specs.responseTime = responseTime;
+            console.log(`✅ Response Time extracted: ${specs.responseTime}`);
+            break;
+          }
         }
       }
     }
   }
 
   // Strategy 3: If still missing specs, try broader patterns but be more selective
-  if (!specs.size || !specs.resolution || !specs.refreshRate) {
+  if (!specs.size || !specs.resolution || !specs.responseTime) {
     console.log('🔍 Some specs missing, trying selective patterns...');
 
     // For size, use model-specific selection
@@ -892,7 +976,7 @@ function extractDellTechSpecs(html: string, productName: string, query: string) 
     }
 
     // For refresh rate, prefer 100Hz over 240Hz for SE2225HM
-    if (!specs.refreshRate) {
+    if (!specs.responseTime) {
       const allHzValues = textContent.match(/(\d+)\s*(?:Hz|hertz)/gi) || [];
       console.log(`🔍 All Hz values found:`, allHzValues);
 
@@ -900,22 +984,72 @@ function extractDellTechSpecs(html: string, productName: string, query: string) 
         .map(hz => parseInt(hz.replace(/\D/g, '')))
         .filter(hz => hz >= 60 && hz <= 240);
 
-      // For SE2225HM, prefer 100Hz over higher values
-      const preferredHz = [100, 75, 60, 120, 144, 165, 180, 200, 240];
-      for (const preferred of preferredHz) {
-        if (validHzValues.includes(preferred)) {
-          specs.refreshRate = `${preferred}Hz`;
-          console.log(`✅ Selected refresh rate (preferred for ${targetModel}): ${specs.refreshRate}`);
-          break;
+      // Removed Hz-based response time selection - now using proper ms-based extraction
+    }
+
+    // Extract refresh rate (Hz) - specifically for the new refreshRate field
+    if (!specs.refreshRate) {
+      console.log('🔍 Searching for refresh rate (Hz)...');
+
+      // First, try to find "Standard Refresh Rate" section
+      const standardRefreshRateMatch = textContent.match(/Standard\s*Refresh\s*Rate[^.]{0,50}?(\d+)\s*(?:Hz|hertz)/i);
+      if (standardRefreshRateMatch) {
+        const standardHz = parseInt(standardRefreshRateMatch[1]);
+        if (standardHz >= 60 && standardHz <= 240) {
+          specs.refreshRate = `${standardHz}Hz`;
+          console.log(`✅ Found Standard Refresh Rate: ${specs.refreshRate}`);
         }
       }
 
-      // If no preferred value found, take a middle value
-      if (!specs.refreshRate && validHzValues.length > 0) {
-        const sortedHz = validHzValues.sort((a, b) => a - b);
-        const middleIndex = Math.floor(sortedHz.length / 2);
-        specs.refreshRate = `${sortedHz[middleIndex]}Hz`;
-        console.log(`✅ Selected refresh rate (middle value): ${specs.refreshRate}`);
+      // If not found, search for all Hz values
+      if (!specs.refreshRate) {
+        const allHzValues = textContent.match(/(\d+)\s*(?:Hz|hertz)/gi) || [];
+        console.log(`🔍 All Hz values found:`, allHzValues);
+
+        const validHzValues = allHzValues
+          .map(hz => parseInt(hz.replace(/\D/g, '')))
+          .filter(hz => hz >= 60 && hz <= 240);
+
+        if (validHzValues.length > 0) {
+          // For gaming monitors (SEHG, SGN, etc.), prefer higher refresh rates
+          const isGamingMonitor = targetModel && (targetModel.includes('HG') || targetModel.includes('GN') || targetModel.includes('G'));
+
+          if (isGamingMonitor) {
+            // Prioritize higher refresh rates for gaming monitors
+            const gamingPreferredHz = [240, 200, 180, 165, 144, 120, 100, 75, 60];
+            for (const preferred of gamingPreferredHz) {
+              if (validHzValues.includes(preferred)) {
+                specs.refreshRate = `${preferred}Hz`;
+                console.log(`✅ Selected refresh rate (gaming monitor ${targetModel}): ${specs.refreshRate}`);
+                break;
+              }
+            }
+          } else {
+            // For regular monitors, prefer common refresh rates
+            const preferredHz = [100, 75, 60, 120, 144, 165, 180, 200, 240];
+            for (const preferred of preferredHz) {
+              if (validHzValues.includes(preferred)) {
+                specs.refreshRate = `${preferred}Hz`;
+                console.log(`✅ Selected refresh rate (preferred for ${targetModel}): ${specs.refreshRate}`);
+                break;
+              }
+            }
+          }
+
+          // If no preferred value found, take the highest value (for gaming monitors) or middle value
+          if (!specs.refreshRate && validHzValues.length > 0) {
+            if (isGamingMonitor) {
+              const maxHz = Math.max(...validHzValues);
+              specs.refreshRate = `${maxHz}Hz`;
+              console.log(`✅ Selected refresh rate (gaming monitor - highest value): ${specs.refreshRate}`);
+            } else {
+              const sortedHz = validHzValues.sort((a, b) => a - b);
+              const middleIndex = Math.floor(sortedHz.length / 2);
+              specs.refreshRate = `${sortedHz[middleIndex]}Hz`;
+              console.log(`✅ Selected refresh rate (middle value): ${specs.refreshRate}`);
+            }
+          }
+        }
       }
     }
 
@@ -931,15 +1065,54 @@ function extractDellTechSpecs(html: string, productName: string, query: string) 
         const matches = textContent.match(pattern);
         if (matches) {
           for (const match of matches) {
+            let resolution = '';
+            let designation = '';
+
             if (match.toLowerCase().includes('full hd') || match.toLowerCase().includes('fhd') || match.toLowerCase().includes('1080p')) {
-              specs.resolution = '1920 x 1080';
-              console.log(`✅ Resolution from text (FHD): ${specs.resolution}`);
-              break;
+              resolution = '1920 x 1080';
+              designation = 'FHD';
             } else if (match.includes('1920') && match.includes('1080')) {
-              specs.resolution = '1920 x 1080';
-              console.log(`✅ Resolution from text (standard): ${specs.resolution}`);
-              break;
+              resolution = '1920 x 1080';
+              // Look for designation in surrounding text
+              const matchIndex = textContent.indexOf(match);
+              const contextStart = Math.max(0, matchIndex - 100);
+              const contextEnd = Math.min(textContent.length, matchIndex + match.length + 100);
+              const context = textContent.substring(contextStart, contextEnd);
+
+              console.log(`🔍 Strategy 3 - Searching for designation in context (${context.length} chars around "${match}")`);
+
+              // Check for designations in context
+              if (/fhd|full\s*hd/i.test(context)) {
+                designation = 'FHD';
+                console.log(`✅ Found FHD designation in context`);
+              }
+              else if (/qhd|quad\s*hd/i.test(context)) {
+                designation = 'QHD';
+                console.log(`✅ Found QHD designation in context`);
+              }
+              else if (/4k|ultra\s*hd|uhd/i.test(context)) {
+                designation = '4K';
+                console.log(`✅ Found 4K designation in context`);
+              } else {
+                console.log(`⚠️ No designation found in context around "${match}"`);
+              }
+            } else if (match.includes('2560') && match.includes('1440')) {
+              resolution = '2560 x 1440';
+              designation = 'QHD';
+            } else if (match.includes('3840') && match.includes('2160')) {
+              resolution = '3840 x 2160';
+              designation = '4K';
+            } else {
+              // Extract from pattern match
+              const numMatch = match.match(/(\d{3,4})\s*[xX]\s*(\d{3,4})/);
+              if (numMatch) {
+                resolution = `${numMatch[1]} x ${numMatch[2]}`;
+              }
             }
+
+            specs.resolution = designation ? `${resolution} ${designation}` : resolution;
+            console.log(`✅ Resolution from text: ${specs.resolution}`);
+            break;
           }
           if (specs.resolution) break;
         }
@@ -1000,6 +1173,27 @@ function extractDellTechSpecs(html: string, productName: string, query: string) 
   }
 
   console.log('📋 Final Dell specs from webpage:', specs);
+  console.log('🔍 Resolution value:', specs.resolution, '| ResponseTime value:', specs.responseTime);
+
+  // Enhancement: Automatically add designation for known resolutions
+  if (specs.resolution && !specs.resolution.includes('FHD') && !specs.resolution.includes('QHD') && !specs.resolution.includes('4K')) {
+    if (specs.resolution.includes('1920 x 1080') || specs.resolution.includes('1920x1080')) {
+      specs.resolution = '1920 x 1080 FHD';
+      console.log('✅ Added FHD designation to resolution');
+    } else if (specs.resolution.includes('2560 x 1440') || specs.resolution.includes('2560x1440')) {
+      specs.resolution = '2560 x 1440 QHD';
+      console.log('✅ Added QHD designation to resolution');
+    } else if (specs.resolution.includes('3840 x 2160') || specs.resolution.includes('3840x2160')) {
+      specs.resolution = '3840 x 2160 4K';
+      console.log('✅ Added 4K designation to resolution');
+    }
+  }
+
+  // Enhancement: If responseTime is empty but we have Hz values, don't show Hz as response time
+  if (specs.responseTime && specs.responseTime.includes('Hz')) {
+    console.log(`⚠️ Response time contains Hz value (${specs.responseTime}) - clearing as this is refresh rate, not response time`);
+    specs.responseTime = '';
+  }
 
   return {
     productName: productName,
@@ -1009,10 +1203,15 @@ function extractDellTechSpecs(html: string, productName: string, query: string) 
     technicalSpecs: [
       specs.size ? `Screen Size: ${specs.size}` : '',
       specs.resolution ? `Resolution: ${specs.resolution}` : '',
+      specs.responseTime ? `Response Time: ${specs.responseTime}` : '',
       specs.refreshRate ? `Refresh Rate: ${specs.refreshRate}` : '',
       specs.ports ? `Ports: ${specs.ports}` : '',
       specs.warranty ? `Warranty: ${specs.warranty}` : ''
     ].filter(Boolean),
+    debugInfo: {
+      extractionDetails: `Resolution: ${specs.resolution}, ResponseTime: ${specs.responseTime}, RefreshRate: ${specs.refreshRate}, Size: ${specs.size}`,
+      source: 'Dell official webpage with enhanced extraction'
+    },
     inTheBox: undefined,
     dimensions: null,
     weight: null,
@@ -1188,7 +1387,7 @@ function extractTechnicalSpecs(html: string): string[] {
 
     if (validHzValues.length > 0) {
       const maxHz = Math.max(...validHzValues); // Take the highest refresh rate
-      specs.push(`Refresh Rate: ${maxHz}Hz`);
+      specs.push(`Response Time: ${maxHz}Hz`);
       console.log('🎯 Selected refresh rate:', maxHz, 'Hz');
     }
   }
@@ -1439,7 +1638,7 @@ function generateDefaultSpecs(query: string): string[] {
       'Panel Type: IPS/LED',
       'Screen Size: 21.5 to 27 inches',
       'Resolution: 1920 x 1080 (Full HD)',
-      'Refresh Rate: 60Hz - 75Hz',
+      'Response Time: 60Hz - 75Hz',
       'Response Time: 5ms - 8ms',
       'Brightness: 250 - 300 cd/m²',
       'Contrast Ratio: 1000:1',
