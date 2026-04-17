@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import ProductUploader, { ProductImages } from './ProductUploader';
+import ProductInfoExtractor from './ProductInfoExtractor';
 import FrameUploader from './FrameUploader';
 import GenerateButton from './GenerateButton';
 import MockupPreview from './MockupPreview';
@@ -71,6 +72,9 @@ export default function MockupGenerator() {
 
   return (
     <div className="space-y-8">
+      {/* Product Information Extractor Section */}
+      <ProductInfoExtractor onInfoExtracted={setProductInfo} />
+
       {/* Product Images Upload Section */}
       <ProductUploader
         onImagesSelect={setProductImages}

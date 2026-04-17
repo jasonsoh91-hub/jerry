@@ -12,12 +12,13 @@ export interface ProductImage {
 }
 
 export interface ProductInfo {
-  name: string;
-  brand: string;
   model: string;
-  description: string;
-  specifications: string[];
-  keyFeatures: string[];
+  briefName: string;
+  size: string;
+  resolution: string;
+  refreshRate: string;
+  ports: string;
+  warranty: string;
 }
 
 export interface FrameAnalysis {

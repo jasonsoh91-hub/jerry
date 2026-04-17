@@ -45,7 +45,7 @@ export default function FrameUploader({ onImagesSelect, selectedImages, onProduc
   const [previews, setPreviews] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showCustomSettings, setShowCustomSettings] = useState(false);
-  const [useManualSettings, setUseManualSettings] = useState(true); // Default to manual for better control
+  const [useManualSettings, setUseManualSettings] = useState(false); // Default to auto detect
   const [productArea, setProductArea] = useState({
     x: 10,
     y: 15,
@@ -122,36 +122,13 @@ export default function FrameUploader({ onImagesSelect, selectedImages, onProduc
         <h2 className="text-xl font-semibold text-gray-900">Frame Templates</h2>
         <div className="flex items-center gap-3">
           {selectedImages.length > 0 && (
-            <>
-              <button
-                onClick={() => {
-                  setUseManualSettings(!useManualSettings);
-                  setShowCustomSettings(!useManualSettings ? true : showCustomSettings);
-                }}
-                className={`text-sm px-3 py-1 rounded-lg transition-colors ${
-                  useManualSettings
-                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {useManualSettings ? '✓ Manual' : 'Auto'} Detect
-              </button>
-              {useManualSettings && (
-                <button
-                  onClick={() => setShowCustomSettings(!showCustomSettings)}
-                  className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
-                >
-                  {showCustomSettings ? 'Hide' : 'Show'} Settings
-                </button>
-              )}
-              <button
-                onClick={handleRemoveAll}
-                className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1"
-              >
-                <X className="w-4 h-4" />
-                Remove All
-              </button>
-            </>
+            <button
+              onClick={handleRemoveAll}
+              className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1"
+            >
+              <X className="w-4 h-4" />
+              Remove All
+            </button>
           )}
         </div>
       </div>
@@ -159,123 +136,6 @@ export default function FrameUploader({ onImagesSelect, selectedImages, onProduc
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-sm text-red-600">{error}</p>
-        </div>
-      )}
-
-      {/* Custom Product Area Settings */}
-      {useManualSettings && showCustomSettings && selectedImages.length > 0 && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="font-semibold text-blue-900 mb-3">📐 Product Area Settings</h3>
-          <p className="text-sm text-blue-700 mb-4">
-            Define where the product should be placed in your frames (in percentages)
-          </p>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-blue-900 mb-1">
-                X Position ({productArea.x}%)
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={productArea.x}
-                onChange={(e) => setProductArea({ ...productArea, x: Number(e.target.value) })}
-                className="w-full"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-blue-900 mb-1">
-                Y Position ({productArea.y}%)
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={productArea.y}
-                onChange={(e) => setProductArea({ ...productArea, y: Number(e.target.value) })}
-                className="w-full"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-blue-900 mb-1">
-                Width ({productArea.width}%)
-              </label>
-              <input
-                type="range"
-                min="10"
-                max="100"
-                value={productArea.width}
-                onChange={(e) => setProductArea({ ...productArea, width: Number(e.target.value) })}
-                className="w-full"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-blue-900 mb-1">
-                Height ({productArea.height}%)
-              </label>
-              <input
-                type="range"
-                min="10"
-                max="100"
-                value={productArea.height}
-                onChange={(e) => setProductArea({ ...productArea, height: Number(e.target.value) })}
-                className="w-full"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-blue-900 mb-1">
-                Product Scale ({Math.round(productArea.scale * 100)}%)
-              </label>
-              <input
-                type="range"
-                min="50"
-                max="200"
-                value={productArea.scale * 100}
-                onChange={(e) => setProductArea({ ...productArea, scale: Number(e.target.value) / 100 })}
-                className="w-full"
-              />
-            </div>
-          </div>
-
-          <div className="mt-3 p-3 bg-blue-100 rounded-lg">
-            <p className="text-xs text-blue-800">
-              <strong>Preview:</strong> Product will be placed at X:{productArea.x}%, Y:{productArea.y}%
-              with size {productArea.width}% × {productArea.height}% of the frame
-              and scaled to {Math.round(productArea.scale * 100)}%
-            </p>
-          </div>
-
-          <div className="mt-3 flex gap-2">
-            <button
-              onClick={() => setProductArea({ x: 10, y: 15, width: 35, height: 70, scale: 1.0 })}
-              className="text-xs px-2 py-1 bg-white text-blue-700 rounded hover:bg-blue-50"
-            >
-              Left Side
-            </button>
-            <button
-              onClick={() => setProductArea({ x: 30, y: 20, width: 40, height: 60, scale: 1.0 })}
-              className="text-xs px-2 py-1 bg-white text-blue-700 rounded hover:bg-blue-50"
-            >
-              Center
-            </button>
-            <button
-              onClick={() => setProductArea({ x: 55, y: 15, width: 35, height: 70, scale: 1.0 })}
-              className="text-xs px-2 py-1 bg-white text-blue-700 rounded hover:bg-blue-50"
-            >
-              Right Side
-            </button>
-            <button
-              onClick={() => setProductArea({ x: 5, y: 10, width: 45, height: 80, scale: 1.0 })}
-              className="text-xs px-2 py-1 bg-white text-blue-700 rounded hover:bg-blue-50"
-            >
-              Full Left
-            </button>
-          </div>
         </div>
       )}
 

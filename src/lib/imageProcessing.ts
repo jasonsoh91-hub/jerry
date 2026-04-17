@@ -536,160 +536,56 @@ export function drawProductInfoOverlay(
   productInfo: any,
   config: any
 ): void {
+  console.log('🔍 drawProductInfoOverlay called with:', {
+    hasProductInfo: !!productInfo,
+    showProductInfo: config?.showProductInfo,
+    model: productInfo?.model,
+    canvasSize: `${canvas.width}x${canvas.height}`
+  });
+
   if (!productInfo || !config.showProductInfo) {
+    console.log('⚠️ Skipping product info overlay - missing productInfo or showProductInfo is false');
     return;
   }
 
-  console.log('📝 Drawing product info overlay:', productInfo.name);
+  console.log('📝 Drawing product info overlay:', productInfo.model || productInfo.name);
 
-  const padding = 20;
-  const boxWidth = Math.min(400, canvas.width * 0.4);
-  const boxHeight = canvas.height * 0.7;
-  const startX = canvas.width - boxWidth - padding;
-  const startY = padding;
+  // Draw model number at specified position
+  if (productInfo.model) {
+    ctx.save();
 
-  // Background box with gradient and shadow
-  ctx.save();
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-  ctx.shadowBlur = 20;
-  ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 5;
+    // Model text configuration
+    const modelText = productInfo.model;
+    const modelX = 260; // Fixed X position (moved another 15px right)
+    const modelY = 75;  // Fixed Y position (moved 5px up)
+    const modelFontSize = 32;
 
-  // Draw gradient background
-  const gradient = ctx.createLinearGradient(startX, startY, startX + boxWidth, startY + boxHeight);
-  gradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
-  gradient.addColorStop(1, 'rgba(250, 250, 250, 0.95)');
+    console.log(`✏️ Drawing model text "${modelText}" at X:${modelX}, Y:${modelY}`);
 
-  ctx.fillStyle = gradient;
-  ctx.beginPath();
-  ctx.roundRect(startX, startY, boxWidth, boxHeight, 12);
-  ctx.fill();
+    // Use Orbitron font (Google Font), fallback to sci-fi and system fonts
+    const modelFont = `${modelFontSize}px "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
+    ctx.font = modelFont;
 
-  // Draw border
-  ctx.strokeStyle = 'rgba(200, 200, 200, 0.5)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
+    // Draw both black and white for maximum visibility on any background
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
 
-  ctx.restore();
+    // White outline (thick)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
+    ctx.lineWidth = 8;
+    ctx.strokeText(modelText, modelX, modelY);
 
-  // Text configuration
-  const textPadding = 24;
-  let currentY = startY + textPadding;
+    // Black text
+    ctx.fillStyle = '#000000';
+    ctx.fillText(modelText, modelX, modelY);
 
-  // Brand name
-  ctx.fillStyle = '#6B7280';
-  ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText(productInfo.brand.toUpperCase(), startX + textPadding, currentY);
-  currentY += 20;
-
-  // Product name
-  ctx.fillStyle = '#111827';
-  ctx.font = 'bold 18px system-ui, -apple-system, sans-serif';
-  const maxWidth = boxWidth - (textPadding * 2);
-
-  // Wrap text for product name
-  const words = productInfo.name.split(' ');
-  let line = '';
-  for (let i = 0; i < words.length; i++) {
-    const testLine = line + words[i] + ' ';
-    const metrics = ctx.measureText(testLine);
-    if (metrics.width > maxWidth && i > 0) {
-      ctx.fillText(line.trim(), startX + textPadding, currentY);
-      line = words[i] + ' ';
-      currentY += 24;
-    } else {
-      line = testLine;
-    }
-  }
-  ctx.fillText(line.trim(), startX + textPadding, currentY);
-  currentY += 28;
-
-  // Description
-  if (productInfo.description) {
-    ctx.fillStyle = '#6B7280';
-    ctx.font = '13px system-ui, -apple-system, sans-serif';
-    const descWords = productInfo.description.split(' ');
-    let descLine = '';
-    for (let i = 0; i < descWords.length; i++) {
-      const testLine = descLine + descWords[i] + ' ';
-      const metrics = ctx.measureText(testLine);
-      if (metrics.width > maxWidth && i > 0) {
-        ctx.fillText(descLine.trim(), startX + textPadding, currentY);
-        descLine = descWords[i] + ' ';
-        currentY += 18;
-      } else {
-        descLine = testLine;
-      }
-    }
-    ctx.fillText(descLine.trim(), startX + textPadding, currentY);
-    currentY += 24;
+    ctx.restore();
+    console.log(`✅ Model text "${modelText}" drawn at X:${modelX}, Y:${modelY} with font "Orbitron" size ${modelFontSize} - Color: Black`);
+  } else {
+    console.log('⚠️ No model found in productInfo:', productInfo);
   }
 
-  // Specifications section
-  if (productInfo.specifications && productInfo.specifications.length > 0) {
-    ctx.fillStyle = '#111827';
-    ctx.font = 'bold 14px system-ui, -apple-system, sans-serif';
-    ctx.fillText('SPECIFICATIONS', startX + textPadding, currentY);
-    currentY += 16;
-
-    ctx.fillStyle = '#4B5563';
-    ctx.font = '11px system-ui, -apple-system, sans-serif';
-
-    const specLimit = Math.min(productInfo.specifications.length, 4);
-    for (let i = 0; i < specLimit; i++) {
-      const spec = productInfo.specifications[i];
-      const specWords = spec.split(' ');
-      let specLine = '• ';
-      for (let j = 0; j < specWords.length; j++) {
-        const testLine = specLine + specWords[j] + ' ';
-        const metrics = ctx.measureText(testLine);
-        if (metrics.width > maxWidth && j > 0) {
-          ctx.fillText(specLine.trim(), startX + textPadding, currentY);
-          specLine = '  ' + specWords[j] + ' ';
-          currentY += 16;
-        } else {
-          specLine = testLine;
-        }
-      }
-      ctx.fillText(specLine.trim(), startX + textPadding, currentY);
-      currentY += 16;
-    }
-    currentY += 8;
-  }
-
-  // Key features section
-  if (productInfo.keyFeatures && productInfo.keyFeatures.length > 0) {
-    ctx.fillStyle = '#111827';
-    ctx.font = 'bold 14px system-ui, -apple-system, sans-serif';
-    ctx.fillText('KEY FEATURES', startX + textPadding, currentY);
-    currentY += 16;
-
-    ctx.fillStyle = '#059669';
-    ctx.font = '11px system-ui, -apple-system, sans-serif';
-
-    const featureLimit = Math.min(productInfo.keyFeatures.length, 3);
-    for (let i = 0; i < featureLimit; i++) {
-      const feature = '✓ ' + productInfo.keyFeatures[i];
-      const featureWords = feature.split(' ');
-      let featureLine = '';
-      for (let j = 0; j < featureWords.length; j++) {
-        const testLine = featureLine + featureWords[j] + ' ';
-        const metrics = ctx.measureText(testLine);
-        if (metrics.width > maxWidth && j > 0) {
-          ctx.fillText(featureLine.trim(), startX + textPadding, currentY);
-          featureLine = '  ' + featureWords[j] + ' ';
-          currentY += 16;
-        } else {
-          featureLine = testLine;
-        }
-      }
-      ctx.fillText(featureLine.trim(), startX + textPadding, currentY);
-      currentY += 16;
-    }
-  }
-
-  console.log('✅ Product info overlay complete');
+  console.log('✅ Model text overlay complete');
 }
 
 /**
@@ -782,49 +678,19 @@ export async function compositeProductIntoFrame(
     throw error;
   }
 
-  // 3. Calculate scale to fill the product area (safe zone)
-  const safeZone = frameAnalysis.safeZone;
-  const productAreaWidth = safeZone.width;
-  const productAreaHeight = safeZone.height;
+  // 3. Use fixed position and scale as requested
+  const fixedPosition = {
+    x: 230,  // Fixed X position
+    y: 290   // Fixed Y position
+  };
 
-  // Scale product to fill the product area aggressively
-  const padding = 0.85; // Use 85% of the area (more aggressive filling)
-  const scaleX = (productAreaWidth * padding) / product.width;
-  const scaleY = (productAreaHeight * padding) / product.height;
+  const fixedScale = 3.0; // 300% scale
 
-  // Use the larger scale to fill more space, but cap at 1.3x the smaller scale
-  const minScale = Math.min(scaleX, scaleY);
-  const maxScale = Math.max(scaleX, scaleY);
-  let scale = Math.min(maxScale, minScale * 1.3); // Allow up to 30% larger for better filling
-
-  // Apply variation-specific scale modifier
-  scale = scale * config.scale;
-
-  // Apply manual scale from user settings
-  if (frameAnalysis.manualScale && frameAnalysis.manualScale !== 1.0) {
-    scale = scale * frameAnalysis.manualScale;
-    console.log('🔧 Applying manual scale:', frameAnalysis.manualScale);
-  }
-
-  console.log('📊 Enhanced product scaling for better space utilization:');
-  console.log('📦 Product size:', `${product.width}x${product.height}`);
-  console.log('🎯 Product area:', `${Math.round(productAreaWidth)}x${Math.round(productAreaHeight)}`);
-  console.log('📏 Scale calculations:', {
-    padding: `${padding * 100}%`,
-    scaleX: scaleX.toFixed(3),
-    scaleY: scaleY.toFixed(3),
-    minScale: Math.min(scaleX, scaleY).toFixed(3),
-    maxScale: Math.max(scaleX, scaleY).toFixed(3),
-    chosenScale: scale.toFixed(3),
-    variationScale: config.scale,
-    manualScale: frameAnalysis.manualScale || 1.0,
-    finalScale: scale.toFixed(3)
-  });
-  console.log('📐 Final product size:', `${Math.round(product.width * scale)}x${Math.round(product.height * scale)}`);
-  console.log('📊 Space utilization:', {
-    widthFill: `${Math.round((product.width * scale / productAreaWidth) * 100)}%`,
-    heightFill: `${Math.round((product.height * scale / productAreaHeight) * 100)}%`
-  });
+  console.log('🎯 Using FIXED position and scale (as requested):');
+  console.log(`📍 Fixed Position: X=${fixedPosition.x}px, Y=${fixedPosition.y}px`);
+  console.log(`📏 Fixed Scale: ${fixedScale * 100}% (${fixedScale}x)`);
+  console.log(`📦 Original Product Size: ${product.width}x${product.height}`);
+  console.log(`📐 Scaled Product Size: ${Math.round(product.width * fixedScale)}x${Math.round(product.height * fixedScale)}`);
 
   // Log configuration details
   console.log('🎨 Variation config:', {
@@ -833,19 +699,21 @@ export async function compositeProductIntoFrame(
     lighting: config.lighting ? `brightness:${config.lighting.brightness} contrast:${config.lighting.contrast} vignette:${config.lighting.vignette}` : 'none'
   });
 
-  // 4. Calculate position to center product in the product area
-  const productWidth = product.width * scale;
-  const productHeight = product.height * scale;
+  // 4. Calculate product dimensions and use fixed position
+  const productWidth = product.width * fixedScale;
+  const productHeight = product.height * fixedScale;
 
-  // Center in the product area, then apply position offset
-  const centerX = safeZone.x + (safeZone.width - productWidth) / 2;
-  const centerY = safeZone.y + (safeZone.height - productHeight) / 2;
-
-  const x = centerX + (safeZone.width - productWidth) * (config.position.x - 0.5);
-  const y = centerY + (safeZone.height - productHeight) * (config.position.y - 0.5);
+  // Use fixed position as requested
+  const x = fixedPosition.x;
+  const y = fixedPosition.y;
 
   // 5. Draw the product with shadow if configured
-  console.log('✏️  Drawing product at position:', { x: Math.round(x), y: Math.round(y) });
+  console.log('✏️  About to draw product with FIXED values:');
+  console.log(`📍 Drawing at: X=${x}px, Y=${y}px`);
+  console.log(`📏 Product size: ${Math.round(productWidth)}x${Math.round(productHeight)}px`);
+  console.log(`🖼️  Canvas size: ${canvas.width}x${canvas.height}`);
+  console.log(`📐 Scale: ${fixedScale}x (${fixedScale * 100}%)`);
+  console.log(`🔍 Frame dimensions: ${frame.width}x${frame.height}`);
 
   if (config.shadow) {
     // Save context state before applying shadow
@@ -872,7 +740,7 @@ export async function compositeProductIntoFrame(
 
     // Restore context to remove shadow for subsequent operations
     ctx.restore();
-    console.log('✅ Product drawn with shadow');
+    console.log('✅ Product successfully DRAWN with shadow at fixed position');
   } else {
     // No shadow, just draw product
     if (config.rotation !== 0) {

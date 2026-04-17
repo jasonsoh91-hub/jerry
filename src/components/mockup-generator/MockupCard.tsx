@@ -29,8 +29,10 @@ export default function MockupCard({ mockup }: MockupCardProps) {
   const [inlineEditPosition, setInlineEditPosition] = useState<{x: number, y: number} | null>(null);
 
   // Product controls for first mockup
+  // Default position: X: 229px, Y: 310px (will be converted to normalized based on frame size)
+  // Default scale: 400% (4.0x)
   const [productPosition, setProductPosition] = useState<{x: number, y: number} | null>(null);
-  const [productScale, setProductScale] = useState<number>(1.0);
+  const [productScale, setProductScale] = useState<number>(4.0);
   const [showProductControls, setShowProductControls] = useState(false);
   const [isDraggingProduct, setIsDraggingProduct] = useState(false);
   const [isRecompositing, setIsRecompositing] = useState(false);
@@ -52,15 +54,52 @@ export default function MockupCard({ mockup }: MockupCardProps) {
   // Check if this is the first mockup (with frame) - only this one has product controls
   const isFirstMockup = mockup.id === 'mockup-1';
 
-  // Extract frame analysis for recompositing
+  // Extract frame analysis for recompositing and set initial product position
   useEffect(() => {
     if (isFirstMockup && mockup.originalFrame && mockup.originalProduct) {
       // Analyze frame to get safe zone info
       analyzeFrame(mockup.originalFrame, null).then(analysis => {
         frameAnalysisRef.current = analysis;
+
+        // Set initial product position to requested defaults: X: 229px, Y: 310px
+        // Convert pixel values to normalized coordinates (0-1)
+        if (mockup.originalFrame) {
+          const initialX = 229 / mockup.originalFrame.width;
+          const initialY = 310 / mockup.originalFrame.height;
+
+          // Only set if not already set by user
+          if (productPosition === null) {
+            setProductPosition({ x: initialX, y: initialY });
+            console.log('🎯 Set initial product position:', {
+              pixels: { x: 229, y: 310 },
+              normalized: { x: initialX.toFixed(4), y: initialY.toFixed(4) },
+              frameSize: { width: mockup.originalFrame.width, height: mockup.originalFrame.height }
+            });
+          }
+        }
       });
+
+      // Initialize model text as an editable text element if product info exists
+      // Only add if we haven't added it yet (check by id)
+      // DISABLED: Using fixed overlay instead of editable text
+      // if (mockup.config?.productInfo?.model && !textElements.find(t => t.id === 'model-text')) {
+      //   const modelText: TextElement = {
+      //     id: 'model-text',
+      //     text: mockup.config.productInfo.model,
+      //     x: 120, // Initial X position
+      //     y: 80,  // Initial Y position
+      //     fontSize: 32,
+      //     fontFamily: 'Orbitron',
+      //     fontWeight: '900',
+      //     fontStyle: 'normal',
+      //     color: '#000000',
+      //     textAlign: 'left'
+      //   };
+      //   setTextElements(prev => [...prev, modelText]);
+      //   console.log('✅ Initialized model text as editable element:', modelText);
+      // }
     }
-  }, [isFirstMockup, mockup]);
+  }, [isFirstMockup, mockup, textElements]);
 
   // Update preview when format, text, or product controls change
   useEffect(() => {
@@ -428,7 +467,7 @@ export default function MockupCard({ mockup }: MockupCardProps) {
         frameAnalysisRef.current,
         currentPosition,
         currentScale,
-        textElements,
+        mockup.config?.productInfo || null, // Pass productInfo for model overlay
         undefined // No progress callback needed
       );
 
@@ -848,7 +887,7 @@ export default function MockupCard({ mockup }: MockupCardProps) {
                   <input
                     type="range"
                     min="50"
-                    max="200"
+                    max="400"
                     value={productScale * 100}
                     onChange={(e) => handleProductScaleChange(Number(e.target.value) / 100)}
                     className="w-full"
@@ -857,6 +896,8 @@ export default function MockupCard({ mockup }: MockupCardProps) {
                     <span>50%</span>
                     <span>100%</span>
                     <span>200%</span>
+                    <span>300%</span>
+                    <span>400%</span>
                   </div>
                 </div>
 
@@ -879,8 +920,13 @@ export default function MockupCard({ mockup }: MockupCardProps) {
                 {/* Reset Button */}
                 <button
                   onClick={() => {
-                    setProductPosition(null);
-                    setProductScale(1.0);
+                    // Reset to requested defaults: X: 229px, Y: 310px, Scale: 400%
+                    if (mockup.originalFrame) {
+                      const initialX = 229 / mockup.originalFrame.width;
+                      const initialY = 310 / mockup.originalFrame.height;
+                      setProductPosition({ x: initialX, y: initialY });
+                    }
+                    setProductScale(4.0);
                   }}
                   className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                 >

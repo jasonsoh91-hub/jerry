@@ -35,7 +35,7 @@ export default function GenerateButton({
       <div className="relative flex items-center gap-3">
         <Wand2 className={`w-5 h-5 ${isGenerating ? 'animate-spin' : ''}`} />
         <span>
-          {isGenerating ? `Generating... ${Math.round(progress)}%` : 'Generate 5 Product Images'}
+          {isGenerating ? `Generating... ${Math.round(progress)}%` : 'Generate Product Image'}
         </span>
       </div>
     </button>

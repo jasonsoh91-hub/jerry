@@ -1,7 +1,7 @@
 // Mockup generation orchestrator and variation algorithms
 
 import type { VariationConfig, GeneratedMockup, ProcessingProgress, ProductInfo } from './types';
-import { processProductImage, analyzeFrame, compositeProductIntoFrame } from './imageProcessing';
+import { processProductImage, analyzeFrame, compositeProductIntoFrame, drawProductInfoOverlay } from './imageProcessing';
 
 export type ProductImages = {
   front: File | null;
@@ -86,12 +86,19 @@ export async function generateMockups(
 
           console.log(`📸 Using ${productView} view for ${config.name}`);
 
-          // Note: Product info overlay disabled - using text editor instead
+          // Enable model overlay from product info
           const configWithProductInfo = {
             ...config,
-            showProductInfo: false, // Disabled - using drag-and-drop text editor
-            productInfo: null
+            showProductInfo: true, // Enabled - show model number on mockup
+            productInfo: productInfo // Pass product info to display model
           };
+
+          console.log('🎯 Config for compositeProductIntoFrame:', {
+            showProductInfo: configWithProductInfo.showProductInfo,
+            hasProductInfo: !!configWithProductInfo.productInfo,
+            model: configWithProductInfo.productInfo?.model,
+            briefName: configWithProductInfo.productInfo?.briefName
+          });
 
           const canvas = await compositeProductIntoFrame(
             product.processed,
@@ -108,7 +115,7 @@ export async function generateMockups(
             canvas,
             name: config.name,
             description: config.description,
-            config
+            config: configWithProductInfo // Save config WITH productInfo
           };
 
           if (config.id === 'mockup') {
@@ -189,7 +196,7 @@ export async function recompositeProduct(
   frameAnalysis: any,
   newPosition: { x: number; y: number },
   newScale: number,
-  textElements: any[],
+  productInfo?: ProductInfo | null,
   onProgress?: (progress: ProcessingProgress) => void
 ): Promise<HTMLCanvasElement> {
   try {
@@ -261,32 +268,11 @@ export async function recompositeProduct(
     // Draw product
     ctx.drawImage(originalProduct, x, y, productWidth, productHeight);
 
-    // Apply text elements on top
-    if (textElements && textElements.length > 0) {
-      textElements.forEach(text => {
-        ctx.save();
-
-        // Clear any existing shadow settings
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
-
-        const font = `${text.fontStyle} ${text.fontWeight} ${text.fontSize}px ${text.fontFamily}`;
-        ctx.font = font;
-        ctx.fillStyle = text.color;
-        ctx.textAlign = text.textAlign as CanvasTextAlign;
-        ctx.textBaseline = 'middle';
-
-        // Thin white outline for visibility on dark backgrounds
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-        ctx.lineWidth = 2;
-        ctx.strokeText(text.text, text.x, text.y);
-
-        // Draw text
-        ctx.fillText(text.text, text.x, text.y);
-        ctx.restore();
-      });
+    // Draw product info overlay (model number)
+    if (productInfo) {
+      console.log('📝 Adding product info overlay in recomposite...');
+      drawProductInfoOverlay(ctx, canvas, productInfo, { showProductInfo: true });
+      console.log('✅ Product info overlay applied in recomposite');
     }
 
     return canvas;
