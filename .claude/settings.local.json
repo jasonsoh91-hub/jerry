@@ -42,7 +42,11 @@
       "Bash(awk NR>=115 && NR<=125:*)",
       "Bash(xargs kill:*)",
       "Bash(vercel login:*)",
-      "Bash(vercel:*)"
+      "Bash(vercel:*)",
+      "Bash(kill 8415 7789)",
+      "Bash(ls -lt /private/tmp/claude-501/-Users-jasonsoh-Documents-Jerry/9434b190-6fdf-4bb7-a62a-694c47473a3a/tasks/*.output)",
+      "Bash(python3 -m json.tool)",
+      "Bash(kill 16606)"
     ]
   }
 }
