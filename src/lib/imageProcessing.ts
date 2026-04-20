@@ -563,8 +563,8 @@ export function drawProductInfoOverlay(
 
     console.log(`✏️ Drawing model text "${modelText}" at X:${modelX}, Y:${modelY}`);
 
-    // Use Orbitron font (Google Font), fallback to sci-fi and system fonts
-    const modelFont = `${modelFontSize}px "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
+    // Use UPHEAVTT font (local font), fallback to Orbitron and sci-fi fonts
+    const modelFont = `${modelFontSize}px "UPHEAVTT", "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
     ctx.font = modelFont;
 
     // Draw both black and white for maximum visibility on any background
@@ -581,7 +581,7 @@ export function drawProductInfoOverlay(
     ctx.fillText(modelText, modelX, modelY);
 
     ctx.restore();
-    console.log(`✅ Model text "${modelText}" drawn at X:${modelX}, Y:${modelY} with font "Orbitron" size ${modelFontSize} - Color: Black`);
+    console.log(`✅ Model text "${modelText}" drawn at X:${modelX}, Y:${modelY} with font "UPHEAVTT" size ${modelFontSize} - Color: Black`);
   } else {
     console.log('⚠️ No model found in productInfo:', productInfo);
   }
@@ -600,9 +600,9 @@ export function drawProductInfoOverlay(
 
     console.log(`✏️ Drawing brief name "${briefText}" at X:${briefX}, Y:${briefY}`);
 
-    // Use Orbitron font (Google Font), fallback to sci-fi and system fonts
+    // Use UPHEAVTT font (local font), fallback to Orbitron and sci-fi fonts
     // Added "900" font weight for extra bold/thick appearance
-    const briefFont = `900 ${briefFontSize}px "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
+    const briefFont = `900 ${briefFontSize}px "UPHEAVTT", "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
     ctx.font = briefFont;
     ctx.fillStyle = briefColor;
     ctx.textAlign = 'left';
@@ -637,7 +637,7 @@ export function drawProductInfoOverlay(
     ctx.fillText(line.trim(), briefX, currentY);
 
     ctx.restore();
-    console.log(`✅ Brief name "${briefText}" drawn at X:${briefX}, Y:${briefY} with font "Orbitron" size ${briefFontSize} - Color: ${briefColor}`);
+    console.log(`✅ Brief name "${briefText}" drawn at X:${briefX}, Y:${briefY} with font "UPHEAVTT" size ${briefFontSize} - Color: ${briefColor}`);
   }
 
   // Draw size at specified position with text wrapping (same column as brief name)
@@ -654,9 +654,9 @@ export function drawProductInfoOverlay(
 
     console.log(`✏️ Drawing size "${sizeText}" at X:${sizeX}, Y:${sizeY}`);
 
-    // Use Orbitron font (Google Font), fallback to sci-fi and system fonts
+    // Use UPHEAVTT font (local font), fallback to Orbitron and sci-fi fonts
     // Added "900" font weight for extra bold/thick appearance
-    const sizeFont = `900 ${sizeFontSize}px "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
+    const sizeFont = `900 ${sizeFontSize}px "UPHEAVTT", "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
     ctx.font = sizeFont;
     ctx.fillStyle = sizeColor;
     ctx.textAlign = 'left';
@@ -691,7 +691,7 @@ export function drawProductInfoOverlay(
     ctx.fillText(line.trim(), sizeX, currentY);
 
     ctx.restore();
-    console.log(`✅ Size "${sizeText}" drawn at X:${sizeX}, Y:${sizeY} with font "Orbitron" size ${sizeFontSize} - Color: ${sizeColor}`);
+    console.log(`✅ Size "${sizeText}" drawn at X:${sizeX}, Y:${sizeY} with font "UPHEAVTT" size ${sizeFontSize} - Color: ${sizeColor}`);
   }
 
   // Draw resolution at specified position with text wrapping (same column as size)
@@ -708,9 +708,9 @@ export function drawProductInfoOverlay(
 
     console.log(`✏️ Drawing resolution "${resolutionText}" at X:${resolutionX}, Y:${resolutionY}`);
 
-    // Use Orbitron font (Google Font), fallback to sci-fi and system fonts
+    // Use UPHEAVTT font (local font), fallback to Orbitron and sci-fi fonts
     // Added "900" font weight for extra bold/thick appearance
-    const resolutionFont = `900 ${resolutionFontSize}px "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
+    const resolutionFont = `900 ${resolutionFontSize}px "UPHEAVTT", "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
     ctx.font = resolutionFont;
     ctx.fillStyle = resolutionColor;
     ctx.textAlign = 'left';
@@ -745,7 +745,7 @@ export function drawProductInfoOverlay(
     ctx.fillText(line.trim(), resolutionX, currentY);
 
     ctx.restore();
-    console.log(`✅ Resolution "${resolutionText}" drawn at X:${resolutionX}, Y:${resolutionY} with font "Orbitron" size ${resolutionFontSize} - Color: ${resolutionColor}`);
+    console.log(`✅ Resolution "${resolutionText}" drawn at X:${resolutionX}, Y:${resolutionY} with font "UPHEAVTT" size ${resolutionFontSize} - Color: ${resolutionColor}`);
   }
 
   // Draw response time at specified position with text wrapping (same column as resolution)
@@ -762,9 +762,9 @@ export function drawProductInfoOverlay(
 
     console.log(`✏️ Drawing response time "${responseTimeText}" at X:${responseTimeX}, Y:${responseTimeY}`);
 
-    // Use Orbitron font (Google Font), fallback to sci-fi and system fonts
+    // Use UPHEAVTT font (local font), fallback to Orbitron and sci-fi fonts
     // Added "900" font weight for extra bold/thick appearance
-    const responseTimeFont = `900 ${responseTimeFontSize}px "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
+    const responseTimeFont = `900 ${responseTimeFontSize}px "UPHEAVTT", "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
     ctx.font = responseTimeFont;
     ctx.fillStyle = responseTimeColor;
     ctx.textAlign = 'left';
@@ -799,7 +799,7 @@ export function drawProductInfoOverlay(
     ctx.fillText(line.trim(), responseTimeX, currentY);
 
     ctx.restore();
-    console.log(`✅ Response Time "${responseTimeText}" drawn at X:${responseTimeX}, Y:${responseTimeY} with font "Orbitron" size ${responseTimeFontSize} - Color: ${responseTimeColor}`);
+    console.log(`✅ Response Time "${responseTimeText}" drawn at X:${responseTimeX}, Y:${responseTimeY} with font "UPHEAVTT" size ${responseTimeFontSize} - Color: ${responseTimeColor}`);
   }
 
   // Draw refresh rate at specified position with text wrapping (same column as response time)
@@ -816,9 +816,9 @@ export function drawProductInfoOverlay(
 
     console.log(`✏️ Drawing refresh rate "${refreshRateText}" at X:${refreshRateX}, Y:${refreshRateY}`);
 
-    // Use Orbitron font (Google Font), fallback to sci-fi and system fonts
+    // Use UPHEAVTT font (local font), fallback to Orbitron and sci-fi fonts
     // Added "900" font weight for extra bold/thick appearance
-    const refreshRateFont = `900 ${refreshRateFontSize}px "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
+    const refreshRateFont = `900 ${refreshRateFontSize}px "UPHEAVTT", "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
     ctx.font = refreshRateFont;
     ctx.fillStyle = refreshRateColor;
     ctx.textAlign = 'left';
@@ -853,7 +853,7 @@ export function drawProductInfoOverlay(
     ctx.fillText(line.trim(), refreshRateX, currentY);
 
     ctx.restore();
-    console.log(`✅ Refresh Rate "${refreshRateText}" drawn at X:${refreshRateX}, Y:${refreshRateY} with font "Orbitron" size ${refreshRateFontSize} - Color: ${refreshRateColor}`);
+    console.log(`✅ Refresh Rate "${refreshRateText}" drawn at X:${refreshRateX}, Y:${refreshRateY} with font "UPHEAVTT" size ${refreshRateFontSize} - Color: ${refreshRateColor}`);
   }
 
   console.log('✅ Product info overlay complete');
