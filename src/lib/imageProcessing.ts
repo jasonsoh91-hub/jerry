@@ -4,31 +4,54 @@ import { removeBackground } from '@imgly/background-removal';
 import type { ProductImage, FrameAnalysis } from './types';
 
 /**
- * Load an image from a File object
+ * Load an image from a URL string or File object
+ * Unified function that handles both web URLs and local files
  */
-export async function loadImage(file: File): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
+export async function loadImage(urlOrFile: string | File): Promise<HTMLImageElement> {
+  if (typeof urlOrFile === 'string') {
+    // Load from URL
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous'; // Handle CORS
 
-    img.onload = () => {
-      // Validate image dimensions
-      if (!img.width || !img.height || img.width <= 0 || img.height <= 0) {
+      img.onload = () => {
+        console.log(`✅ Image loaded from URL: ${urlOrFile} (${img.width}x${img.height})`);
+        resolve(img);
+      };
+
+      img.onerror = () => {
+        console.error(`❌ Failed to load image from URL: ${urlOrFile}`);
+        reject(new Error('Failed to load image from URL'));
+      };
+
+      img.src = urlOrFile;
+    });
+  } else {
+    // Load from File
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(urlOrFile);
+
+      img.onload = () => {
+        // Validate image dimensions
+        if (!img.width || !img.height || img.width <= 0 || img.height <= 0) {
+          URL.revokeObjectURL(url);
+          reject(new Error('Image has invalid dimensions'));
+          return;
+        }
+        console.log(`✅ Image loaded from file: ${urlOrFile.name} (${img.width}x${img.height})`);
         URL.revokeObjectURL(url);
-        reject(new Error('Image has invalid dimensions'));
-        return;
-      }
-      URL.revokeObjectURL(url);
-      resolve(img);
-    };
+        resolve(img);
+      };
 
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error('Failed to load image'));
-    };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Failed to load image'));
+      };
 
-    img.src = url;
-  });
+      img.src = url;
+    });
+  }
 }
 
 /**
@@ -530,12 +553,12 @@ export function applyLightingEffects(
  * Draw product information overlay on the canvas
  * Creates styled boxes with product details, specs, and features
  */
-export function drawProductInfoOverlay(
+export async function drawProductInfoOverlay(
   ctx: CanvasRenderingContext2D,
   canvas: HTMLCanvasElement,
   productInfo: any,
   config: any
-): void {
+): Promise<void> {
   console.log('🔍 drawProductInfoOverlay called with:', {
     hasProductInfo: !!productInfo,
     showProductInfo: config?.showProductInfo,
@@ -604,6 +627,9 @@ export function drawProductInfoOverlay(
   } else {
     console.log('⚠️ No model found in productInfo:', productInfo);
   }
+
+  // Brand rendering has been removed
+  console.log('ℹ️ Brand rendering disabled - brand text no longer appears in mockups');
 
   // Draw brief name at specified position with text wrapping
   if (productInfo.briefName) {
@@ -1186,7 +1212,7 @@ export async function compositeProductIntoFrame(
   // 6. Draw product info overlay if configured
   if (config.showProductInfo && config.productInfo) {
     console.log('📝 Adding product info overlay...');
-    drawProductInfoOverlay(ctx, canvas, config.productInfo, config);
+    await drawProductInfoOverlay(ctx, canvas, config.productInfo, config);
     console.log('✅ Product info overlay applied');
   }
 

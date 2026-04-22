@@ -13,6 +13,7 @@ export interface ProductImage {
 
 export interface ProductInfo {
   model: string;
+  brand: string;
   briefName: string;
   size: string;
   resolution: string;

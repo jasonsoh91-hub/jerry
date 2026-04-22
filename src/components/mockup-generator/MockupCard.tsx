@@ -4,7 +4,7 @@ import { Download, ChevronDown, Type } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { GeneratedMockup } from '@/lib/types';
 import TextEditor, { TextElement } from './TextEditor';
-import { recompositeProduct, generateMockups } from '@/lib/mockupGenerator';
+import { recompositeProduct, generateMockups, DEFAULT_TEXT_OVERLAY_SETTINGS } from '@/lib/mockupGenerator';
 import { analyzeFrame } from '@/lib/imageProcessing';
 import type { FrameAnalysis } from '@/lib/types';
 
@@ -19,6 +19,7 @@ export default function MockupCard({ mockup }: MockupCardProps) {
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('1:1');
   const [showFormatDropdown, setShowFormatDropdown] = useState(false);
   const [previewCanvas, setPreviewCanvas] = useState<HTMLCanvasElement | null>(null);
+  const [canvasUpdateTime, setCanvasUpdateTime] = useState<number>(Date.now());
   const [showTextEditor, setShowTextEditor] = useState(false);
   const [textElements, setTextElements] = useState<TextElement[]>([]);
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
@@ -38,15 +39,9 @@ export default function MockupCard({ mockup }: MockupCardProps) {
   const [isRecompositing, setIsRecompositing] = useState(false);
 
   // Text overlay controls - make all text elements editable
+  // Use shared default settings for consistency with initial generation
   const [showTextOverlayControls, setShowTextOverlayControls] = useState(false);
-  const [textOverlaySettings, setTextOverlaySettings] = useState({
-    model: { x: 750, y: 185, fontSize: 110, maxWidth: 1000, maxHeight: 150, align: 'left' as 'left' | 'center' | 'right' },
-    briefName: { x: 40, y: 200, fontSize: 70, maxWidth: 600, maxHeight: 100, lineHeight: 60, align: 'left' as 'left' | 'center' | 'right' },
-    size: { x: 15, y: 377, fontSize: 70, maxWidth: 600, lineHeight: 100, align: 'center' as 'left' | 'center' | 'right' },
-    resolution: { x: 15, y: 497, fontSize: 70, maxWidth: 600, lineHeight: 100, align: 'center' as 'left' | 'center' | 'right' },
-    responseTime: { x: 15, y: 615, fontSize: 70, maxWidth: 600, lineHeight: 100, align: 'center' as 'left' | 'center' | 'right' },
-    refreshRate: { x: 15, y: 738, fontSize: 70, maxWidth: 600, lineHeight: 100, align: 'center' as 'left' | 'center' | 'right' }
-  });
+  const [textOverlaySettings, setTextOverlaySettings] = useState(DEFAULT_TEXT_OVERLAY_SETTINGS);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
@@ -119,37 +114,62 @@ export default function MockupCard({ mockup }: MockupCardProps) {
   // Update preview when format, text, product controls, or text overlay settings change
   useEffect(() => {
     const updatePreview = async () => {
-      console.log('🔄 updatePreview called with:', {
+      console.log('🔄🔄🔄 updatePreview START - Timestamp:', Date.now(), {
         selectedFormat,
         productPosition,
         productScale,
-        isFirstMockup
+        isFirstMockup,
+        hasOriginalFrame: !!mockup.originalFrame,
+        hasOriginalProduct: !!mockup.originalProduct,
+        currentCanvasSize: previewCanvas ? `${previewCanvas.width}x${previewCanvas.height}` : 'none'
       });
 
       let processed;
 
       // For first mockup with custom position/scale, skip processAndExport and go directly to transformations
       if (isFirstMockup && (productPosition || productScale !== 1.0) && mockup.originalFrame) {
-        console.log('✅ First mockup with custom position/scale - using transformations directly');
+        console.log('✅ First mockup with custom position/scale - calling applyProductTransformations');
         processed = await applyProductTransformations();
-      } else {
-        console.log('⏭️ Standard preview flow');
-        processed = await processAndExport(selectedFormat);
 
-        // Apply text overlay settings for first mockup (ONLY SOURCE OF TEXT)
-        // This REPLACES any existing text rather than adding duplicates
-        if (isFirstMockup && mockup.config?.productInfo) {
-          console.log('🎯 About to apply text overlay settings...');
-          processed = await applyTextOverlaySettings(processed);
+        console.log('🎨 applyProductTransformations completed, canvas size:', {
+          resultSize: processed ? `${processed.width}x${processed.height}` : 'null',
+          isSameObject: processed === previewCanvas,
+          prevCanvasSize: previewCanvas ? `${previewCanvas.width}x${previewCanvas.height}` : 'none'
+        });
+
+        // CRITICAL: Check if canvas actually changed
+        if (processed === previewCanvas) {
+          console.error('❌❌❌ MAJOR ISSUE: Canvas reference is THE SAME! React won\'t re-render!');
+        } else {
+          console.log('✅ Canvas reference is DIFFERENT - React should re-render');
         }
+
+        // CRITICAL: Update canvas and force re-render
+        console.log('💾 About to call setPreviewCanvas and setCanvasUpdateTime');
+        setPreviewCanvas(processed);
+        setCanvasUpdateTime(Date.now());
+
+        console.log('✅ setPreviewCanvas and setCanvasUpdateTime called - IMAGE SHOULD UPDATE');
+        return;
+      }
+
+      console.log('⏭️ Standard preview flow');
+      processed = await processAndExport(selectedFormat);
+
+      // Apply text overlay settings for first mockup (ONLY SOURCE OF TEXT)
+      // This REPLACES any existing text rather than adding duplicates
+      if (isFirstMockup && mockup.config?.productInfo) {
+        console.log('🎯 About to apply text overlay settings...');
+        processed = await applyTextOverlaySettings(processed);
       }
 
       // Render text elements on the canvas
       const withText = renderTextElements(processed, textElements);
       setPreviewCanvas(withText);
+      setCanvasUpdateTime(Date.now()); // Force image re-render
     };
     updatePreview();
-  }, [selectedFormat, textElements, productPosition, productScale, textOverlaySettings, isFirstMockup, mockup.originalFrame, mockup.config?.productInfo]);
+  }, [selectedFormat, textElements, productPosition, productScale, textOverlaySettings, isFirstMockup, mockup.originalFrame, mockup.originalProduct, mockup.config?.productInfo]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -331,6 +351,7 @@ export default function MockupCard({ mockup }: MockupCardProps) {
     // Update canvas with new text immediately
     const updatedCanvas = renderTextElements(mockup.canvas, texts);
     setPreviewCanvas(updatedCanvas);
+    setCanvasUpdateTime(Date.now()); // Force image re-render
   };
 
   /**
@@ -412,6 +433,7 @@ export default function MockupCard({ mockup }: MockupCardProps) {
     // Update canvas
     const updatedCanvas = renderTextElements(mockup.canvas, newTexts);
     setPreviewCanvas(updatedCanvas);
+    setCanvasUpdateTime(Date.now()); // Force image re-render
 
     // Reset inline editing state
     setInlineEditingId(null);
@@ -466,6 +488,7 @@ export default function MockupCard({ mockup }: MockupCardProps) {
     // Update canvas
     const updatedCanvas = renderTextElements(mockup.canvas, newTexts);
     setPreviewCanvas(updatedCanvas);
+    setCanvasUpdateTime(Date.now()); // Force image re-render
 
     // Reset inline editing state
     setInlineEditingId(null);
@@ -476,40 +499,58 @@ export default function MockupCard({ mockup }: MockupCardProps) {
   /**
    * Apply text overlay settings to the mockup
    * This redraws the product info overlays with new settings
+   * @param canvas - The canvas to add text overlays to (may already have product composited)
+   * @param skipProductRecomposite - If true, skip re-compositing the product and just add text overlays to the existing canvas
    */
-  const applyTextOverlaySettings = async (canvas: HTMLCanvasElement): Promise<HTMLCanvasElement> => {
+  const applyTextOverlaySettings = async (canvas: HTMLCanvasElement, skipProductRecomposite: boolean = false): Promise<HTMLCanvasElement> => {
     if (!mockup.config?.productInfo || !mockup.originalFrame) {
       console.log('⚠️ Skipping text overlays - no product info or frame');
       return canvas;
     }
 
-    console.log('🎨 Applying text overlay settings:', textOverlaySettings);
+    console.log('🎨 Applying text overlay settings:', textOverlaySettings, { skipProductRecomposite });
 
     // Import the drawProductInfoOverlay function
     const { drawProductInfoOverlay } = await import('@/lib/imageProcessing');
 
-    // Create a FRESH canvas - this ensures we don't draw over existing text
-    const newCanvas = document.createElement('canvas');
-    newCanvas.width = canvas.width;
-    newCanvas.height = canvas.height;
-    const ctx = newCanvas.getContext('2d')!;
+    let newCanvas: HTMLCanvasElement;
+    let ctx: CanvasRenderingContext2D;
 
-    // Draw ONLY the frame and product (NO existing text overlays)
-    // We draw from the original frame first, then composite the product
-    ctx.drawImage(mockup.originalFrame, 0, 0);
+    if (skipProductRecomposite) {
+      // Create a NEW canvas by copying the existing one
+      // This ensures React detects the change and re-renders
+      console.log('✅ Creating new canvas from existing (product already in new position)');
+      newCanvas = document.createElement('canvas');
+      newCanvas.width = canvas.width;
+      newCanvas.height = canvas.height;
+      ctx = newCanvas.getContext('2d', { willReadFrequently: true })!;
 
-    // Draw the product on top (without text overlays)
-    if (mockup.originalProduct && mockup.config && frameAnalysisRef.current) {
-      // Recomposite just the product without text overlays
-      const { compositeProductIntoFrame } = await import('@/lib/imageProcessing');
-      const tempConfig = { ...mockup.config, showProductInfo: false };
-      const productCanvas = await compositeProductIntoFrame(
-        mockup.originalProduct,
-        mockup.originalFrame,
-        frameAnalysisRef.current,
-        tempConfig
-      );
-      ctx.drawImage(productCanvas, 0, 0);
+      // Draw the existing canvas (with product) onto the new canvas
+      ctx.drawImage(canvas, 0, 0);
+    } else {
+      // Create a FRESH canvas - this ensures we don't draw over existing text
+      newCanvas = document.createElement('canvas');
+      newCanvas.width = canvas.width;
+      newCanvas.height = canvas.height;
+      ctx = newCanvas.getContext('2d')!;
+
+      // Draw ONLY the frame and product (NO existing text overlays)
+      // We draw from the original frame first, then composite the product
+      ctx.drawImage(mockup.originalFrame, 0, 0);
+
+      // Draw the product on top (without text overlays)
+      if (mockup.originalProduct && mockup.config && frameAnalysisRef.current) {
+        // Recomposite just the product without text overlays
+        const { compositeProductIntoFrame } = await import('@/lib/imageProcessing');
+        const tempConfig = { ...mockup.config, showProductInfo: false };
+        const productCanvas = await compositeProductIntoFrame(
+          mockup.originalProduct,
+          mockup.originalFrame,
+          frameAnalysisRef.current,
+          tempConfig
+        );
+        ctx.drawImage(productCanvas, 0, 0);
+      }
     }
 
     // NOW draw the text overlays with your settings (FIRST TIME ONLY)
@@ -578,9 +619,10 @@ export default function MockupCard({ mockup }: MockupCardProps) {
       });
 
       // Apply text overlays after product transformation
+      // IMPORTANT: Pass true to skip re-recompositing the product (it's already in the correct position!)
       if (mockup.config?.productInfo) {
         console.log('🎨 Applying text overlays after product transformation...');
-        finalCanvas = await applyTextOverlaySettings(finalCanvas);
+        finalCanvas = await applyTextOverlaySettings(finalCanvas, true); // Skip product re-composite!
       }
 
       return finalCanvas;
@@ -598,10 +640,12 @@ export default function MockupCard({ mockup }: MockupCardProps) {
   const handleProductMouseDown = (e: React.MouseEvent) => {
     if (!isFirstMockup) return;
 
-    console.log('🖱️ Product mouse down triggered!', {
+    console.log('🖱️🖱️🖱️ Product mouse down triggered! DRAG OVERLAY IS WORKING!', {
       showProductControls,
       isFirstMockup,
-      productPosition
+      productPosition,
+      eventTarget: (e.target as HTMLElement).className,
+      mousePosition: { clientX: e.clientX, clientY: e.clientY }
     });
 
     e.preventDefault();
@@ -626,7 +670,7 @@ export default function MockupCard({ mockup }: MockupCardProps) {
         canvasHeight: mockup.originalFrame.height
       };
 
-      console.log('🎯 Drag start ref set:', productDragStartRef.current);
+      console.log('🎯 Drag start ref set - READY TO DRAG!', productDragStartRef.current);
     }
   };
 
@@ -751,6 +795,7 @@ export default function MockupCard({ mockup }: MockupCardProps) {
         // Update canvas with new text positions
         const updatedCanvas = renderTextElements(mockup.canvas, newTexts);
         setPreviewCanvas(updatedCanvas);
+        setCanvasUpdateTime(Date.now()); // Force image re-render
       }
 
       // Reset drag state
@@ -811,11 +856,13 @@ export default function MockupCard({ mockup }: MockupCardProps) {
         {previewCanvas ? (
           <>
             <img
+              key={canvasUpdateTime}
               src={previewCanvas.toDataURL()}
               alt={`${mockup.name} preview (${selectedFormat})`}
               className="w-full h-full object-contain pointer-events-none"
               draggable={false}
               style={{ imageRendering: 'auto' }}
+              onLoad={() => console.log('🖼️ Image loaded/updated! Key:', canvasUpdateTime)}
             />
             {/* Product drag indicator for first mockup - always present but conditionally visible */}
             {isFirstMockup && (
@@ -1101,7 +1148,7 @@ export default function MockupCard({ mockup }: MockupCardProps) {
                 <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                 <h4 className="font-bold text-sm text-red-900">🎯 MODEL TEXT (Example: PG27AQNM)</h4>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                 <div>
                   <label className="block text-xs font-medium text-gray-700">X Position (px)</label>
                   <input
@@ -1162,13 +1209,80 @@ export default function MockupCard({ mockup }: MockupCardProps) {
               </div>
             </div>
 
+            {/* Brand Text Controls */}
+            <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                <h4 className="font-bold text-sm text-orange-900">🏷️ BRAND TEXT (Example: DELL)</h4>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">X Position (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.brand.x}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, brand: {...textOverlaySettings.brand, x: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-orange-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Y Position (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.brand.y}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, brand: {...textOverlaySettings.brand, y: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-orange-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Font Size (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.brand.fontSize}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, brand: {...textOverlaySettings.brand, fontSize: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-orange-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Max Width (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.brand.maxWidth}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, brand: {...textOverlaySettings.brand, maxWidth: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-orange-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Max Height (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.brand.maxHeight}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, brand: {...textOverlaySettings.brand, maxHeight: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-orange-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Alignment</label>
+                  <select
+                    value={textOverlaySettings.brand.align}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, brand: {...textOverlaySettings.brand, align: e.target.value as 'left' | 'center' | 'right'}})}
+                    className="w-full px-2 py-1 border border-orange-300 rounded text-sm bg-white text-gray-700"
+                  >
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
             {/* Brief Name Controls */}
             <div className="bg-purple-50 border-2 border-purple-300 rounded-lg p-3">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
                 <h4 className="font-bold text-sm text-purple-900">📝 BRIEF NAME (Example: ROG STRIX)</h4>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                 <div>
                   <label className="block text-xs font-medium text-gray-700">X Position (px)</label>
                   <input
@@ -1244,7 +1358,7 @@ export default function MockupCard({ mockup }: MockupCardProps) {
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                 <h4 className="font-bold text-sm text-green-900">📏 SIZE (Example: 27 inch)</h4>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs font-medium text-gray-700">X Position (px)</label>
                   <input
@@ -1311,7 +1425,7 @@ export default function MockupCard({ mockup }: MockupCardProps) {
                 <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                 <h4 className="font-bold text-sm text-blue-900">🖥️ RESOLUTION (Example: WQHD 2560 x 1440)</h4>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs font-medium text-gray-700">X Position (px)</label>
                   <input
@@ -1378,7 +1492,7 @@ export default function MockupCard({ mockup }: MockupCardProps) {
                 <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
                 <h4 className="font-bold text-sm text-yellow-900">⚡ RESPONSE TIME (Example: 1ms)</h4>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs font-medium text-gray-700">X Position (px)</label>
                   <input
@@ -1445,7 +1559,7 @@ export default function MockupCard({ mockup }: MockupCardProps) {
                 <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
                 <h4 className="font-bold text-sm text-orange-900">🔄 REFRESH RATE (Example: 180Hz)</h4>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs font-medium text-gray-700">X Position (px)</label>
                   <input

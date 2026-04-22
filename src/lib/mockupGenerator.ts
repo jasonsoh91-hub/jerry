@@ -8,6 +8,21 @@ export type ProductImages = {
 };
 
 /**
+ * Default text overlay settings for initial mockup generation
+ * These positions match the user's preferred coordinates from MockupCard
+ * Exported so UI components can use the same defaults
+ */
+export const DEFAULT_TEXT_OVERLAY_SETTINGS = {
+  model: { x: 750, y: 185, fontSize: 110, maxWidth: 1000, maxHeight: 150, align: 'left' as const },
+  brand: { x: 300, y: 300, fontSize: 70, maxWidth: 600, maxHeight: 80, align: 'left' as const },
+  briefName: { x: 40, y: 200, fontSize: 70, maxWidth: 600, maxHeight: 100, lineHeight: 60, align: 'left' as const },
+  size: { x: 15, y: 377, fontSize: 70, maxWidth: 600, lineHeight: 100, align: 'center' as const },
+  resolution: { x: 15, y: 497, fontSize: 70, maxWidth: 600, lineHeight: 100, align: 'center' as const },
+  responseTime: { x: 15, y: 615, fontSize: 70, maxWidth: 600, lineHeight: 100, align: 'center' as const },
+  refreshRate: { x: 15, y: 738, fontSize: 70, maxWidth: 600, lineHeight: 100, align: 'center' as const }
+};
+
+/**
  * Configuration for the single mockup variation
  */
 export const VARIATION_CONFIGS: VariationConfig[] = [
@@ -86,17 +101,19 @@ export async function generateMockups(
 
           console.log(`📸 Using ${productView} view for ${config.name}`);
 
-          // Enable model overlay from product info
+          // Enable model overlay from product info with correct text overlay settings
           const configWithProductInfo = {
             ...config,
-            showProductInfo: false, // Disabled initially - will be added during preview with custom settings
-            productInfo: productInfo // Pass product info to display model
+            showProductInfo: true, // Enable text overlays from the start
+            productInfo: productInfo, // Pass product info to display model
+            textOverlaySettings: DEFAULT_TEXT_OVERLAY_SETTINGS // Use correct positions from the start
           };
 
           console.log('🎯 Config for compositeProductIntoFrame:', {
             showProductInfo: configWithProductInfo.showProductInfo,
             hasProductInfo: !!configWithProductInfo.productInfo,
             model: configWithProductInfo.productInfo?.model,
+            brand: configWithProductInfo.productInfo?.brand,
             briefName: configWithProductInfo.productInfo?.briefName
           });
 
@@ -267,6 +284,8 @@ export async function recompositeProduct(
 
     // Draw product
     ctx.drawImage(originalProduct, x, y, productWidth, productHeight);
+
+    console.log('✅ Product drawn successfully');
 
     // NO text overlays here - they are applied separately in the UI
     // This prevents duplicate text when dragging the product

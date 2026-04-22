@@ -5,6 +5,7 @@ import { Search, Loader2, Check, Edit2 } from 'lucide-react';
 
 interface ProductInfo {
   model: string;
+  brand: string;
   briefName: string;
   size: string;
   resolution: string;
@@ -22,6 +23,7 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
 
   const [productInfo, setProductInfo] = useState<ProductInfo>({
     model: '',
+    brand: '',
     briefName: '',
     size: '',
     resolution: '',
@@ -39,6 +41,18 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
     return match ? match[1] : '';
   };
 
+  // Extract brand from product name (first word before model)
+  const extractBrand = (name: string, model: string): string => {
+    // Get the first word of the product name (typically the brand)
+    const words = name.trim().split(/\s+/);
+    if (words.length > 0) {
+      const brand = words[0].toUpperCase();
+      // Remove any special characters from brand
+      return brand.replace(/[^a-zA-Z0-9]/g, '');
+    }
+    return '';
+  };
+
   const handleSearch = async () => {
     console.log('🔴 Search button clicked! Product name:', productName);
 
@@ -53,9 +67,10 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
     setSearchComplete(false);
 
     try {
-      // Extract model from product name
+      // Extract model and brand from product name
       const extractedModel = extractModel(productName);
-      console.log('🔍 Starting web search for:', productName, 'Model:', extractedModel);
+      const extractedBrand = extractBrand(productName, extractedModel);
+      console.log('🔍 Starting web search for:', productName, 'Model:', extractedModel, 'Brand:', extractedBrand);
       console.log('📡 Calling API: /api/search-product-info');
 
       // Call the product search API (web crawling)
@@ -89,6 +104,7 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
         // Update product info with crawled data
         const updatedInfo: ProductInfo = {
           model: info.model || extractedModel || '',
+          brand: info.brand || extractedBrand || '',
           briefName: info.briefName || generateBriefName(productName, extractedModel),
           size: info.size || '',
           resolution: info.resolution || '',
@@ -106,6 +122,7 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
         // Fallback to basic extraction if search doesn't return results
         const fallbackInfo: ProductInfo = {
           model: extractedModel || '',
+          brand: extractedBrand || '',
           briefName: generateBriefName(productName, extractedModel),
           size: '',
           resolution: '',
@@ -125,8 +142,12 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
 
       // Still provide basic extraction on error
       const extractedModel = extractModel(productName);
+      const extractedBrand = extractBrand(productName, extractedModel);
+      const brand = extractedBrand || '';
+
       const fallbackInfo: ProductInfo = {
         model: extractedModel,
+        brand: brand,
         briefName: generateBriefName(productName, extractedModel),
         size: '',
         resolution: '',
@@ -240,10 +261,24 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
             />
           </div>
 
-          {/* 2. Brief Name */}
+          {/* 2. Brand */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              2. Brief Naming <span className="text-xs text-gray-500">(short product description)</span>
+              2. Brand <span className="text-xs text-gray-500">(extracted from product name)</span>
+            </label>
+            <input
+              type="text"
+              value={productInfo.brand}
+              onChange={(e) => updateField('brand', e.target.value)}
+              placeholder="e.g., DELL"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+            />
+          </div>
+
+          {/* 3. Brief Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              3. Brief Naming <span className="text-xs text-gray-500">(short product description)</span>
             </label>
             <input
               type="text"
@@ -254,10 +289,10 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
             />
           </div>
 
-          {/* 3. Size */}
+          {/* 4. Size */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              3. Size <span className="text-xs text-gray-500">(screen size)</span>
+              4. Size <span className="text-xs text-gray-500">(screen size)</span>
             </label>
             <input
               type="text"
@@ -268,10 +303,10 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
             />
           </div>
 
-          {/* 4. Resolution */}
+          {/* 5. Resolution */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              4. Resolution <span className="text-xs text-gray-500">(display resolution)</span>
+              5. Resolution <span className="text-xs text-gray-500">(display resolution)</span>
             </label>
             <input
               type="text"
@@ -282,10 +317,10 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
             />
           </div>
 
-          {/* 5. Response Time */}
+          {/* 6. Response Time */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              5. Response Time <span className="text-xs text-gray-500">(ms)</span>
+              6. Response Time <span className="text-xs text-gray-500">(ms)</span>
             </label>
             <input
               type="text"
@@ -296,10 +331,10 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
             />
           </div>
 
-          {/* 6. Refresh Rate */}
+          {/* 7. Refresh Rate */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              6. Refresh Rate <span className="text-xs text-gray-500">(Hz)</span>
+              7. Refresh Rate <span className="text-xs text-gray-500">(Hz)</span>
             </label>
             <input
               type="text"
@@ -310,10 +345,10 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
             />
           </div>
 
-          {/* 7. Compatible Ports */}
+          {/* 8. Compatible Ports */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              7. Compatible Ports <span className="text-xs text-gray-500">(connection types)</span>
+              8. Compatible Ports <span className="text-xs text-gray-500">(connection types)</span>
             </label>
             <input
               type="text"
@@ -324,10 +359,10 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
             />
           </div>
 
-          {/* 8. Warranty */}
+          {/* 9. Warranty */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              8. Warranty <span className="text-xs text-gray-500">(warranty period)</span>
+              9. Warranty <span className="text-xs text-gray-500">(warranty period)</span>
             </label>
             <input
               type="text"

@@ -32,8 +32,9 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${orbitron.variable} h-full antialiased`}
+      style={{ margin: 0, padding: 0, width: '100%' }}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col" style={{ margin: 0, padding: 0, width: '100%' }}>{children}</body>
     </html>
   );
 }

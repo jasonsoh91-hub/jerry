@@ -1,13 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ProductUploader, { ProductImages } from './ProductUploader';
 import ProductInfoExtractor from './ProductInfoExtractor';
-import FrameUploader from './FrameUploader';
 import GenerateButton from './GenerateButton';
 import MockupPreview from './MockupPreview';
-import AIMockupGenerator from './AIMockupGenerator';
-import ShopeeSEOGenerator from './ShopeeSEOGenerator';
 import { generateMockups } from '@/lib/mockupGenerator';
 import type { GeneratedMockup, ProcessingProgress, ProductInfo } from '@/lib/types';
 
@@ -26,9 +23,32 @@ export default function MockupGenerator() {
   });
   const [error, setError] = useState<string | null>(null);
 
+  // Load default frame on mount
+  useEffect(() => {
+    const loadDefaultFrame = async () => {
+      try {
+        const response = await fetch('/frame.png');
+        const blob = await response.blob();
+        const file = new File([blob], 'frame.png', { type: 'image/png' });
+        setFrameImages([file]);
+        console.log('✅ Default frame loaded successfully');
+      } catch (err) {
+        console.error('❌ Failed to load default frame:', err);
+        setError('Failed to load default frame template');
+      }
+    };
+
+    loadDefaultFrame();
+  }, []);
+
   const handleGenerate = async () => {
-    if (!productImages.front || frameImages.length === 0) {
-      setError('Please upload at least a front view product image and frame template(s)');
+    if (!productImages.front) {
+      setError('Please upload a front view product image');
+      return;
+    }
+
+    if (frameImages.length === 0) {
+      setError('Default frame not loaded. Please refresh the page.');
       return;
     }
 
@@ -81,13 +101,6 @@ export default function MockupGenerator() {
         selectedImages={productImages}
       />
 
-      {/* Frame Upload Section */}
-      <FrameUploader
-        onImagesSelect={setFrameImages}
-        selectedImages={frameImages}
-        onProductAreaChange={setProductAreaConfig}
-      />
-
       {/* Error Display */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -124,12 +137,6 @@ export default function MockupGenerator() {
 
       {/* Mockup Preview */}
       {mockups.length > 0 && <MockupPreview mockups={mockups} />}
-
-      {/* AI Mockup Generator Section */}
-      <AIMockupGenerator selectedImages={productImages} />
-
-      {/* Shopee SEO Generator Section */}
-      <ShopeeSEOGenerator selectedImages={productImages} />
     </div>
   );
 }
