@@ -15,8 +15,8 @@ export const VARIATION_CONFIGS: VariationConfig[] = [
     id: 'mockup',
     name: 'Product Mockup',
     productView: 'front',
-    scale: 1.0,
-    position: { x: 0.5, y: 0.5 },
+    scale: 0.8,
+    position: { x: 618, y: 789 },
     rotation: 0,
     shadow: { blur: 30, opacity: 0.25, offsetY: 12 },
     description: 'Professional product mockup with soft shadow'
@@ -89,7 +89,7 @@ export async function generateMockups(
           // Enable model overlay from product info
           const configWithProductInfo = {
             ...config,
-            showProductInfo: true, // Enabled - show model number on mockup
+            showProductInfo: false, // Disabled initially - will be added during preview with custom settings
             productInfo: productInfo // Pass product info to display model
           };
 
@@ -268,12 +268,8 @@ export async function recompositeProduct(
     // Draw product
     ctx.drawImage(originalProduct, x, y, productWidth, productHeight);
 
-    // Draw product info overlay (model number)
-    if (productInfo) {
-      console.log('📝 Adding product info overlay in recomposite...');
-      drawProductInfoOverlay(ctx, canvas, productInfo, { showProductInfo: true });
-      console.log('✅ Product info overlay applied in recomposite');
-    }
+    // NO text overlays here - they are applied separately in the UI
+    // This prevents duplicate text when dragging the product
 
     return canvas;
   } catch (error) {

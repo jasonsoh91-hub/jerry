@@ -551,37 +551,56 @@ export function drawProductInfoOverlay(
 
   console.log('📝 Drawing product info overlay:', productInfo.model || productInfo.name);
 
+  // Get custom text overlay settings if available
+  const customSettings = config.textOverlaySettings || {};
+
   // Draw model number at specified position
   if (productInfo.model) {
     ctx.save();
 
-    // Model text configuration
+    // Model text configuration - use custom settings if available
     const modelText = productInfo.model;
-    const modelX = 260; // Fixed X position (moved another 15px right)
-    const modelY = 75;  // Fixed Y position (moved 5px up)
-    const modelFontSize = 32;
+    const modelSettings = customSettings.model || {};
+    const modelX = modelSettings.x || 750;
+    const modelY = modelSettings.y || 185;
+    const modelFontSize = modelSettings.fontSize || 110;
+    const modelAlign = modelSettings.align || 'left';
+    const modelMaxWidth = modelSettings.maxWidth || 1000;
 
-    console.log(`✏️ Drawing model text "${modelText}" at X:${modelX}, Y:${modelY}`);
+    console.log(`✏️ Drawing model text "${modelText}" at X:${modelX}, Y:${modelY} with alignment: ${modelAlign}`);
 
     // Use UPHEAVTT font (local font), fallback to Orbitron and sci-fi fonts
     const modelFont = `${modelFontSize}px "UPHEAVTT", "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
     ctx.font = modelFont;
 
-    // Draw both black and white for maximum visibility on any background
-    ctx.textAlign = 'left';
+    // Calculate draw position based on alignment relative to X position and max width
+    let drawX = modelX;
+    if (modelAlign === 'center') {
+      // Center: Text is centered in range [X, X + maxWidth]
+      ctx.textAlign = 'center';
+      drawX = modelX + modelMaxWidth / 2;
+    } else if (modelAlign === 'right') {
+      // Right: Text ends at X + maxWidth
+      ctx.textAlign = 'right';
+      drawX = modelX + modelMaxWidth;
+    } else {
+      // Left: Text starts at X
+      ctx.textAlign = 'left';
+    }
+
     ctx.textBaseline = 'top';
 
     // White outline (thick)
     ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
     ctx.lineWidth = 8;
-    ctx.strokeText(modelText, modelX, modelY);
+    ctx.strokeText(modelText, drawX, modelY);
 
     // Black text
     ctx.fillStyle = '#000000';
-    ctx.fillText(modelText, modelX, modelY);
+    ctx.fillText(modelText, drawX, modelY);
 
     ctx.restore();
-    console.log(`✅ Model text "${modelText}" drawn at X:${modelX}, Y:${modelY} with font "UPHEAVTT" size ${modelFontSize} - Color: Black`);
+    console.log(`✅ Model text "${modelText}" drawn at X:${drawX}, Y:${modelY} with font "UPHEAVTT" size ${modelFontSize} - Color: Black - Alignment: ${modelAlign}`);
   } else {
     console.log('⚠️ No model found in productInfo:', productInfo);
   }
@@ -591,21 +610,23 @@ export function drawProductInfoOverlay(
     ctx.save();
 
     const briefText = productInfo.briefName;
-    const briefX = 6; // Moved another 20px left (from 26)
-    const briefY = 80; // Moved 10px up (from 90)
-    const briefFontSize = 20;
+    // Use custom settings if available, otherwise use defaults
+    const briefSettings = customSettings.briefName || {};
+    const briefX = briefSettings.x || 40;
+    const briefY = briefSettings.y || 200;
+    const briefFontSize = briefSettings.fontSize || 70;
     const briefColor = '#3a1f92'; // Purple color
-    const maxWidth = 240; // Wrap text if it exceeds this X position (changed from 250)
-    const lineHeight = 24; // Line height for wrapped text
+    const maxWidth = briefSettings.maxWidth || 600;
+    const lineHeight = briefSettings.lineHeight || 85;
+    const briefAlign = briefSettings.align || 'left';
 
-    console.log(`✏️ Drawing brief name "${briefText}" at X:${briefX}, Y:${briefY}`);
+    console.log(`✏️ Drawing brief name "${briefText}" at X:${briefX}, Y:${briefY} with line spacing ${lineHeight}px and alignment: ${briefAlign}`);
 
     // Use UPHEAVTT font (local font), fallback to Orbitron and sci-fi fonts
     // Added "900" font weight for extra bold/thick appearance
     const briefFont = `900 ${briefFontSize}px "UPHEAVTT", "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
     ctx.font = briefFont;
     ctx.fillStyle = briefColor;
-    ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
 
     // Add subtle white outline for better visibility
@@ -616,28 +637,48 @@ export function drawProductInfoOverlay(
     const words = briefText.split(' ');
     let line = '';
     let currentY = briefY;
+    const lines = [];
 
+    // First, build all lines
     for (let i = 0; i < words.length; i++) {
       const testLine = line + words[i] + ' ';
       const metrics = ctx.measureText(testLine);
       const testWidth = metrics.width;
 
       if (testWidth > maxWidth && i > 0) {
-        // Draw current line with outline and start new one
-        ctx.strokeText(line.trim(), briefX, currentY);
-        ctx.fillText(line.trim(), briefX, currentY);
+        lines.push(line.trim());
         line = words[i] + ' ';
-        currentY += lineHeight;
       } else {
         line = testLine;
       }
     }
-    // Draw last line with outline
-    ctx.strokeText(line.trim(), briefX, currentY);
-    ctx.fillText(line.trim(), briefX, currentY);
+    lines.push(line.trim());
+
+    // Now draw each line with proper alignment relative to range [briefX, briefX + maxWidth]
+    for (let i = 0; i < lines.length; i++) {
+      const lineText = lines[i];
+      let drawX = briefX;
+
+      if (briefAlign === 'center') {
+        // Center: Text is centered in range [X, X + maxWidth]
+        ctx.textAlign = 'center';
+        drawX = briefX + maxWidth / 2;
+      } else if (briefAlign === 'right') {
+        // Right: Text ends at X + maxWidth
+        ctx.textAlign = 'right';
+        drawX = briefX + maxWidth;
+      } else {
+        // Left: Text starts at X
+        ctx.textAlign = 'left';
+      }
+
+      ctx.strokeText(lineText, drawX, currentY);
+      ctx.fillText(lineText, drawX, currentY);
+      currentY += lineHeight;
+    }
 
     ctx.restore();
-    console.log(`✅ Brief name "${briefText}" drawn at X:${briefX}, Y:${briefY} with font "UPHEAVTT" size ${briefFontSize} - Color: ${briefColor}`);
+    console.log(`✅ Brief name "${briefText}" drawn at X:${briefX}, Y:${briefY} with font "UPHEAVTT" size ${briefFontSize} - Color: ${briefColor} - Line spacing: ${lineHeight}px - Alignment: ${briefAlign}`);
   }
 
   // Draw size at specified position with text wrapping (same column as brief name)
@@ -645,21 +686,21 @@ export function drawProductInfoOverlay(
     ctx.save();
 
     const sizeText = productInfo.size;
-    const sizeX = 66; // Moved left 10px (from 76)
-    const sizeY = 144; // Moved up 3px (from 147)
-    const sizeFontSize = 20;
-    const sizeColor = '#FFFFFF'; // Changed to white
-    const maxWidth = 240; // Same wrapping limit as brief name
-    const lineHeight = 24; // Line height for wrapped text
+    const sizeSettings = customSettings.size || {};
+    const sizeX = sizeSettings.x || 137; // Use position from settings
+    const sizeY = sizeSettings.y || 294; // Use position from settings
+    const sizeFontSize = sizeSettings.fontSize || 41;
+    const sizeColor = '#FFFFFF'; // White color
+    const maxWidth = sizeSettings.maxWidth || 497;
+    const lineHeight = sizeSettings.lineHeight || 50;
+    const sizeAlign = sizeSettings.align || 'left';
 
-    console.log(`✏️ Drawing size "${sizeText}" at X:${sizeX}, Y:${sizeY}`);
+    console.log(`✏️ Drawing size "${sizeText}" at X:${sizeX}, Y:${sizeY} with alignment: ${sizeAlign}`);
 
-    // Use UPHEAVTT font (local font), fallback to Orbitron and sci-fi fonts
-    // Added "900" font weight for extra bold/thick appearance
-    const sizeFont = `900 ${sizeFontSize}px "UPHEAVTT", "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
+    // Use Causten-Bold font (local font), fallback to system fonts
+    const sizeFont = `bold ${sizeFontSize}px "Causten", "Arial", "Helvetica", sans-serif`;
     ctx.font = sizeFont;
     ctx.fillStyle = sizeColor;
-    ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
 
     // Add black outline for better visibility on light backgrounds
@@ -670,28 +711,48 @@ export function drawProductInfoOverlay(
     const words = sizeText.split(' ');
     let line = '';
     let currentY = sizeY;
+    const lines = [];
 
+    // First, build all lines
     for (let i = 0; i < words.length; i++) {
       const testLine = line + words[i] + ' ';
       const metrics = ctx.measureText(testLine);
       const testWidth = metrics.width;
 
       if (testWidth > maxWidth && i > 0) {
-        // Draw current line with outline and start new one
-        ctx.strokeText(line.trim(), sizeX, currentY);
-        ctx.fillText(line.trim(), sizeX, currentY);
+        lines.push(line.trim());
         line = words[i] + ' ';
-        currentY += lineHeight;
       } else {
         line = testLine;
       }
     }
-    // Draw last line with outline
-    ctx.strokeText(line.trim(), sizeX, currentY);
-    ctx.fillText(line.trim(), sizeX, currentY);
+    lines.push(line.trim());
+
+    // Now draw each line with proper alignment relative to range [sizeX, sizeX + maxWidth]
+    for (let i = 0; i < lines.length; i++) {
+      const lineText = lines[i];
+      let drawX = sizeX;
+
+      if (sizeAlign === 'center') {
+        // Center: Text is centered in range [X, X + maxWidth]
+        ctx.textAlign = 'center';
+        drawX = sizeX + maxWidth / 2;
+      } else if (sizeAlign === 'right') {
+        // Right: Text ends at X + maxWidth
+        ctx.textAlign = 'right';
+        drawX = sizeX + maxWidth;
+      } else {
+        // Left: Text starts at X
+        ctx.textAlign = 'left';
+      }
+
+      ctx.strokeText(lineText, drawX, currentY);
+      ctx.fillText(lineText, drawX, currentY);
+      currentY += lineHeight;
+    }
 
     ctx.restore();
-    console.log(`✅ Size "${sizeText}" drawn at X:${sizeX}, Y:${sizeY} with font "UPHEAVTT" size ${sizeFontSize} - Color: ${sizeColor}`);
+    console.log(`✅ Size "${sizeText}" drawn at X:${sizeX}, Y:${sizeY} with font "Causten-Bold" size ${sizeFontSize} - Color: ${sizeColor} - Alignment: ${sizeAlign}`);
   }
 
   // Draw resolution at specified position with text wrapping (same column as size)
@@ -699,21 +760,21 @@ export function drawProductInfoOverlay(
     ctx.save();
 
     const resolutionText = productInfo.resolution;
-    const resolutionX = 16; // Moved left 50px (from 66)
-    const resolutionY = 189; // Moved down 30px (from 159)
-    const resolutionFontSize = 20;
-    const resolutionColor = '#FFFFFF'; // White color like size
-    const maxWidth = 240; // Same wrapping limit
-    const lineHeight = 24; // Line height for wrapped text
+    const resolutionSettings = customSettings.resolution || {};
+    const resolutionX = resolutionSettings.x || 33; // Use position from settings
+    const resolutionY = resolutionSettings.y || 386; // Use position from settings
+    const resolutionFontSize = resolutionSettings.fontSize || 41;
+    const resolutionColor = '#FFFFFF'; // White color
+    const maxWidth = resolutionSettings.maxWidth || 497;
+    const lineHeight = resolutionSettings.lineHeight || 50;
+    const resolutionAlign = resolutionSettings.align || 'left';
 
-    console.log(`✏️ Drawing resolution "${resolutionText}" at X:${resolutionX}, Y:${resolutionY}`);
+    console.log(`✏️ Drawing resolution "${resolutionText}" at X:${resolutionX}, Y:${resolutionY} with alignment: ${resolutionAlign}`);
 
-    // Use UPHEAVTT font (local font), fallback to Orbitron and sci-fi fonts
-    // Added "900" font weight for extra bold/thick appearance
-    const resolutionFont = `900 ${resolutionFontSize}px "UPHEAVTT", "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
+    // Use Causten-Bold font (local font), fallback to system fonts
+    const resolutionFont = `bold ${resolutionFontSize}px "Causten", "Arial", "Helvetica", sans-serif`;
     ctx.font = resolutionFont;
     ctx.fillStyle = resolutionColor;
-    ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
 
     // Add black outline for better visibility on light backgrounds
@@ -724,28 +785,48 @@ export function drawProductInfoOverlay(
     const words = resolutionText.split(' ');
     let line = '';
     let currentY = resolutionY;
+    const lines = [];
 
+    // First, build all lines
     for (let i = 0; i < words.length; i++) {
       const testLine = line + words[i] + ' ';
       const metrics = ctx.measureText(testLine);
       const testWidth = metrics.width;
 
       if (testWidth > maxWidth && i > 0) {
-        // Draw current line with outline and start new one
-        ctx.strokeText(line.trim(), resolutionX, currentY);
-        ctx.fillText(line.trim(), resolutionX, currentY);
+        lines.push(line.trim());
         line = words[i] + ' ';
-        currentY += lineHeight;
       } else {
         line = testLine;
       }
     }
-    // Draw last line with outline
-    ctx.strokeText(line.trim(), resolutionX, currentY);
-    ctx.fillText(line.trim(), resolutionX, currentY);
+    lines.push(line.trim());
+
+    // Now draw each line with proper alignment relative to range [resolutionX, resolutionX + maxWidth]
+    for (let i = 0; i < lines.length; i++) {
+      const lineText = lines[i];
+      let drawX = resolutionX;
+
+      if (resolutionAlign === 'center') {
+        // Center: Text is centered in range [X, X + maxWidth]
+        ctx.textAlign = 'center';
+        drawX = resolutionX + maxWidth / 2;
+      } else if (resolutionAlign === 'right') {
+        // Right: Text ends at X + maxWidth
+        ctx.textAlign = 'right';
+        drawX = resolutionX + maxWidth;
+      } else {
+        // Left: Text starts at X
+        ctx.textAlign = 'left';
+      }
+
+      ctx.strokeText(lineText, drawX, currentY);
+      ctx.fillText(lineText, drawX, currentY);
+      currentY += lineHeight;
+    }
 
     ctx.restore();
-    console.log(`✅ Resolution "${resolutionText}" drawn at X:${resolutionX}, Y:${resolutionY} with font "UPHEAVTT" size ${resolutionFontSize} - Color: ${resolutionColor}`);
+    console.log(`✅ Resolution "${resolutionText}" drawn at X:${resolutionX}, Y:${resolutionY} with font "Causten-Bold" size ${resolutionFontSize} - Color: ${resolutionColor} - Alignment: ${resolutionAlign}`);
   }
 
   // Draw response time at specified position with text wrapping (same column as resolution)
@@ -753,21 +834,21 @@ export function drawProductInfoOverlay(
     ctx.save();
 
     const responseTimeText = productInfo.responseTime;
-    const responseTimeX = 76; // Moved right 10px (from 66)
-    const responseTimeY = 234; // Moved down 10px (from 224)
-    const responseTimeFontSize = 20;
-    const responseTimeColor = '#FFFFFF'; // White color like resolution
-    const maxWidth = 240; // Same wrapping limit
-    const lineHeight = 24; // Line height for wrapped text
+    const responseTimeSettings = customSettings.responseTime || {};
+    const responseTimeX = responseTimeSettings.x || 157; // Use position from settings
+    const responseTimeY = responseTimeSettings.y || 478; // Use position from settings
+    const responseTimeFontSize = responseTimeSettings.fontSize || 41;
+    const responseTimeColor = '#FFFFFF'; // White color
+    const maxWidth = responseTimeSettings.maxWidth || 497;
+    const lineHeight = responseTimeSettings.lineHeight || 50;
+    const responseTimeAlign = responseTimeSettings.align || 'left';
 
-    console.log(`✏️ Drawing response time "${responseTimeText}" at X:${responseTimeX}, Y:${responseTimeY}`);
+    console.log(`✏️ Drawing response time "${responseTimeText}" at X:${responseTimeX}, Y:${responseTimeY} with alignment: ${responseTimeAlign}`);
 
-    // Use UPHEAVTT font (local font), fallback to Orbitron and sci-fi fonts
-    // Added "900" font weight for extra bold/thick appearance
-    const responseTimeFont = `900 ${responseTimeFontSize}px "UPHEAVTT", "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
+    // Use Causten-Bold font (local font), fallback to system fonts
+    const responseTimeFont = `bold ${responseTimeFontSize}px "Causten", "Arial", "Helvetica", sans-serif`;
     ctx.font = responseTimeFont;
     ctx.fillStyle = responseTimeColor;
-    ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
 
     // Add black outline for better visibility on light backgrounds
@@ -778,28 +859,48 @@ export function drawProductInfoOverlay(
     const words = responseTimeText.split(' ');
     let line = '';
     let currentY = responseTimeY;
+    const lines = [];
 
+    // First, build all lines
     for (let i = 0; i < words.length; i++) {
       const testLine = line + words[i] + ' ';
       const metrics = ctx.measureText(testLine);
       const testWidth = metrics.width;
 
       if (testWidth > maxWidth && i > 0) {
-        // Draw current line with outline and start new one
-        ctx.strokeText(line.trim(), responseTimeX, currentY);
-        ctx.fillText(line.trim(), responseTimeX, currentY);
+        lines.push(line.trim());
         line = words[i] + ' ';
-        currentY += lineHeight;
       } else {
         line = testLine;
       }
     }
-    // Draw last line with outline
-    ctx.strokeText(line.trim(), responseTimeX, currentY);
-    ctx.fillText(line.trim(), responseTimeX, currentY);
+    lines.push(line.trim());
+
+    // Now draw each line with proper alignment relative to range [responseTimeX, responseTimeX + maxWidth]
+    for (let i = 0; i < lines.length; i++) {
+      const lineText = lines[i];
+      let drawX = responseTimeX;
+
+      if (responseTimeAlign === 'center') {
+        // Center: Text is centered in range [X, X + maxWidth]
+        ctx.textAlign = 'center';
+        drawX = responseTimeX + maxWidth / 2;
+      } else if (responseTimeAlign === 'right') {
+        // Right: Text ends at X + maxWidth
+        ctx.textAlign = 'right';
+        drawX = responseTimeX + maxWidth;
+      } else {
+        // Left: Text starts at X
+        ctx.textAlign = 'left';
+      }
+
+      ctx.strokeText(lineText, drawX, currentY);
+      ctx.fillText(lineText, drawX, currentY);
+      currentY += lineHeight;
+    }
 
     ctx.restore();
-    console.log(`✅ Response Time "${responseTimeText}" drawn at X:${responseTimeX}, Y:${responseTimeY} with font "UPHEAVTT" size ${responseTimeFontSize} - Color: ${responseTimeColor}`);
+    console.log(`✅ Response Time "${responseTimeText}" drawn at X:${responseTimeX}, Y:${responseTimeY} with font "Causten-Bold" size ${responseTimeFontSize} - Color: ${responseTimeColor} - Alignment: ${responseTimeAlign}`);
   }
 
   // Draw refresh rate at specified position with text wrapping (same column as response time)
@@ -807,21 +908,21 @@ export function drawProductInfoOverlay(
     ctx.save();
 
     const refreshRateText = productInfo.refreshRate;
-    const refreshRateX = 76; // Same X as response time
-    const refreshRateY = 294; // Moved down 10px (from 284)
-    const refreshRateFontSize = 20;
-    const refreshRateColor = '#FFFFFF'; // White color like response time
-    const maxWidth = 240; // Same wrapping limit
-    const lineHeight = 24; // Line height for wrapped text
+    const refreshRateSettings = customSettings.refreshRate || {};
+    const refreshRateX = refreshRateSettings.x || 157; // Use position from settings
+    const refreshRateY = refreshRateSettings.y || 599; // Use position from settings
+    const refreshRateFontSize = refreshRateSettings.fontSize || 41;
+    const refreshRateColor = '#FFFFFF'; // White color
+    const maxWidth = refreshRateSettings.maxWidth || 497;
+    const lineHeight = refreshRateSettings.lineHeight || 50;
+    const refreshRateAlign = refreshRateSettings.align || 'left';
 
-    console.log(`✏️ Drawing refresh rate "${refreshRateText}" at X:${refreshRateX}, Y:${refreshRateY}`);
+    console.log(`✏️ Drawing refresh rate "${refreshRateText}" at X:${refreshRateX}, Y:${refreshRateY} with alignment: ${refreshRateAlign}`);
 
-    // Use UPHEAVTT font (local font), fallback to Orbitron and sci-fi fonts
-    // Added "900" font weight for extra bold/thick appearance
-    const refreshRateFont = `900 ${refreshRateFontSize}px "UPHEAVTT", "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
+    // Use Causten-Bold font (local font), fallback to system fonts
+    const refreshRateFont = `bold ${refreshRateFontSize}px "Causten", "Arial", "Helvetica", sans-serif`;
     ctx.font = refreshRateFont;
     ctx.fillStyle = refreshRateColor;
-    ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
 
     // Add black outline for better visibility on light backgrounds
@@ -832,28 +933,48 @@ export function drawProductInfoOverlay(
     const words = refreshRateText.split(' ');
     let line = '';
     let currentY = refreshRateY;
+    const lines = [];
 
+    // First, build all lines
     for (let i = 0; i < words.length; i++) {
       const testLine = line + words[i] + ' ';
       const metrics = ctx.measureText(testLine);
       const testWidth = metrics.width;
 
       if (testWidth > maxWidth && i > 0) {
-        // Draw current line with outline and start new one
-        ctx.strokeText(line.trim(), refreshRateX, currentY);
-        ctx.fillText(line.trim(), refreshRateX, currentY);
+        lines.push(line.trim());
         line = words[i] + ' ';
-        currentY += lineHeight;
       } else {
         line = testLine;
       }
     }
-    // Draw last line with outline
-    ctx.strokeText(line.trim(), refreshRateX, currentY);
-    ctx.fillText(line.trim(), refreshRateX, currentY);
+    lines.push(line.trim());
+
+    // Now draw each line with proper alignment relative to range [refreshRateX, refreshRateX + maxWidth]
+    for (let i = 0; i < lines.length; i++) {
+      const lineText = lines[i];
+      let drawX = refreshRateX;
+
+      if (refreshRateAlign === 'center') {
+        // Center: Text is centered in range [X, X + maxWidth]
+        ctx.textAlign = 'center';
+        drawX = refreshRateX + maxWidth / 2;
+      } else if (refreshRateAlign === 'right') {
+        // Right: Text ends at X + maxWidth
+        ctx.textAlign = 'right';
+        drawX = refreshRateX + maxWidth;
+      } else {
+        // Left: Text starts at X
+        ctx.textAlign = 'left';
+      }
+
+      ctx.strokeText(lineText, drawX, currentY);
+      ctx.fillText(lineText, drawX, currentY);
+      currentY += lineHeight;
+    }
 
     ctx.restore();
-    console.log(`✅ Refresh Rate "${refreshRateText}" drawn at X:${refreshRateX}, Y:${refreshRateY} with font "UPHEAVTT" size ${refreshRateFontSize} - Color: ${refreshRateColor}`);
+    console.log(`✅ Refresh Rate "${refreshRateText}" drawn at X:${refreshRateX}, Y:${refreshRateY} with font "Causten-Bold" size ${refreshRateFontSize} - Color: ${refreshRateColor} - Alignment: ${refreshRateAlign}`);
   }
 
   console.log('✅ Product info overlay complete');
@@ -949,19 +1070,29 @@ export async function compositeProductIntoFrame(
     throw error;
   }
 
-  // 3. Use fixed position and scale as requested
-  const fixedPosition = {
-    x: 230,  // Fixed X position
-    y: 290   // Fixed Y position
+  // 3. Use position from config or fallback to fixed position
+  const finalPosition = config.position || {
+    x: 400,  // Fallback position
+    y: 450   // Fallback position
   };
 
-  const fixedScale = 3.0; // 300% scale
+  const finalScale = config.scale || 1.0; // Use scale from config or fallback
 
-  console.log('🎯 Using FIXED position and scale (as requested):');
-  console.log(`📍 Fixed Position: X=${fixedPosition.x}px, Y=${fixedPosition.y}px`);
-  console.log(`📏 Fixed Scale: ${fixedScale * 100}% (${fixedScale}x)`);
+  console.log('🔍 DEBUG: Product image info:', {
+    productWidth: product.width,
+    productHeight: product.height,
+    canvasWidth: canvas.width,
+    canvasHeight: canvas.height,
+    configPosition: config.position,
+    finalPosition: finalPosition,
+    finalScale: finalScale
+  });
+
+  console.log('🎯 Using position and scale from config:');
+  console.log(`📍 Position: X=${finalPosition.x}px, Y=${finalPosition.y}px`);
+  console.log(`📏 Scale: ${finalScale * 100}% (${finalScale}x)`);
   console.log(`📦 Original Product Size: ${product.width}x${product.height}`);
-  console.log(`📐 Scaled Product Size: ${Math.round(product.width * fixedScale)}x${Math.round(product.height * fixedScale)}`);
+  console.log(`📐 Scaled Product Size: ${Math.round(product.width * finalScale)}x${Math.round(product.height * finalScale)}`);
 
   // Log configuration details
   console.log('🎨 Variation config:', {
@@ -970,21 +1101,22 @@ export async function compositeProductIntoFrame(
     lighting: config.lighting ? `brightness:${config.lighting.brightness} contrast:${config.lighting.contrast} vignette:${config.lighting.vignette}` : 'none'
   });
 
-  // 4. Calculate product dimensions and use fixed position
-  const productWidth = product.width * fixedScale;
-  const productHeight = product.height * fixedScale;
+  // 4. Calculate product dimensions and use position from config
+  const productWidth = product.width * finalScale;
+  const productHeight = product.height * finalScale;
 
-  // Use fixed position as requested
-  const x = fixedPosition.x;
-  const y = fixedPosition.y;
+  // Use position from config
+  const x = finalPosition.x;
+  const y = finalPosition.y;
 
   // 5. Draw the product with shadow if configured
-  console.log('✏️  About to draw product with FIXED values:');
+  console.log('✏️  About to draw product:');
   console.log(`📍 Drawing at: X=${x}px, Y=${y}px`);
   console.log(`📏 Product size: ${Math.round(productWidth)}x${Math.round(productHeight)}px`);
   console.log(`🖼️  Canvas size: ${canvas.width}x${canvas.height}`);
-  console.log(`📐 Scale: ${fixedScale}x (${fixedScale * 100}%)`);
+  console.log(`📐 Scale: ${finalScale}x (${finalScale * 100}%)`);
   console.log(`🔍 Frame dimensions: ${frame.width}x${frame.height}`);
+  console.log(`🎯 Product will be drawn from (${x},${y}) to (${x + Math.round(productWidth)},${y + Math.round(productHeight)})`);
 
   if (config.shadow) {
     // Save context state before applying shadow
@@ -1024,6 +1156,22 @@ export async function compositeProductIntoFrame(
       ctx.drawImage(product, x, y, productWidth, productHeight);
     }
     console.log('✅ Product drawn without shadow');
+  }
+
+  // DEBUG: Verify product was drawn
+  try {
+    const debugPixel = ctx.getImageData(Math.round(x) + 10, Math.round(y) + 10, 1, 1).data;
+    console.log('🔍 DEBUG: Pixel check near product position:', {
+      checkX: Math.round(x) + 10,
+      checkY: Math.round(y) + 10,
+      r: debugPixel[0],
+      g: debugPixel[1],
+      b: debugPixel[2],
+      a: debugPixel[3],
+      hasAlpha: debugPixel[3] > 0
+    });
+  } catch (e) {
+    console.log('⚠️ Could not check pixel (may be out of bounds):', e instanceof Error ? e.message : String(e));
   }
 
   // 6. Verify final canvas has content

@@ -29,13 +29,24 @@ export default function MockupCard({ mockup }: MockupCardProps) {
   const [inlineEditPosition, setInlineEditPosition] = useState<{x: number, y: number} | null>(null);
 
   // Product controls for first mockup
-  // Default position: X: 229px, Y: 310px (will be converted to normalized based on frame size)
+  // Default position: X: 618px, Y: 789px (will be converted to normalized based on frame size)
   // Default scale: 400% (4.0x)
   const [productPosition, setProductPosition] = useState<{x: number, y: number} | null>(null);
   const [productScale, setProductScale] = useState<number>(4.0);
   const [showProductControls, setShowProductControls] = useState(false);
   const [isDraggingProduct, setIsDraggingProduct] = useState(false);
   const [isRecompositing, setIsRecompositing] = useState(false);
+
+  // Text overlay controls - make all text elements editable
+  const [showTextOverlayControls, setShowTextOverlayControls] = useState(false);
+  const [textOverlaySettings, setTextOverlaySettings] = useState({
+    model: { x: 750, y: 185, fontSize: 110, maxWidth: 1000, maxHeight: 150, align: 'left' as 'left' | 'center' | 'right' },
+    briefName: { x: 40, y: 200, fontSize: 70, maxWidth: 600, maxHeight: 100, lineHeight: 60, align: 'left' as 'left' | 'center' | 'right' },
+    size: { x: 15, y: 377, fontSize: 70, maxWidth: 600, lineHeight: 100, align: 'center' as 'left' | 'center' | 'right' },
+    resolution: { x: 15, y: 497, fontSize: 70, maxWidth: 600, lineHeight: 100, align: 'center' as 'left' | 'center' | 'right' },
+    responseTime: { x: 15, y: 615, fontSize: 70, maxWidth: 600, lineHeight: 100, align: 'center' as 'left' | 'center' | 'right' },
+    refreshRate: { x: 15, y: 738, fontSize: 70, maxWidth: 600, lineHeight: 100, align: 'center' as 'left' | 'center' | 'right' }
+  });
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
@@ -57,24 +68,28 @@ export default function MockupCard({ mockup }: MockupCardProps) {
   // Extract frame analysis for recompositing and set initial product position
   useEffect(() => {
     if (isFirstMockup && mockup.originalFrame && mockup.originalProduct) {
+      console.log('🔍 First mockup detected, setting up frame analysis and initial position');
+
       // Analyze frame to get safe zone info
       analyzeFrame(mockup.originalFrame, null).then(analysis => {
         frameAnalysisRef.current = analysis;
 
-        // Set initial product position to requested defaults: X: 229px, Y: 310px
+        // Set initial product position to requested defaults: X: 618px, Y: 789px
         // Convert pixel values to normalized coordinates (0-1)
         if (mockup.originalFrame) {
-          const initialX = 229 / mockup.originalFrame.width;
-          const initialY = 310 / mockup.originalFrame.height;
+          const initialX = 618 / mockup.originalFrame.width;
+          const initialY = 789 / mockup.originalFrame.height;
 
-          // Only set if not already set by user
+          // Only set if not already set by user (prevents overriding user changes)
           if (productPosition === null) {
             setProductPosition({ x: initialX, y: initialY });
             console.log('🎯 Set initial product position:', {
-              pixels: { x: 229, y: 310 },
+              pixels: { x: 618, y: 789 },
               normalized: { x: initialX.toFixed(4), y: initialY.toFixed(4) },
               frameSize: { width: mockup.originalFrame.width, height: mockup.originalFrame.height }
             });
+          } else {
+            console.log('⏭️ Product position already set, not overriding');
           }
         }
       });
@@ -101,14 +116,32 @@ export default function MockupCard({ mockup }: MockupCardProps) {
     }
   }, [isFirstMockup, mockup, textElements]);
 
-  // Update preview when format, text, or product controls change
+  // Update preview when format, text, product controls, or text overlay settings change
   useEffect(() => {
     const updatePreview = async () => {
-      let processed = await processAndExport(selectedFormat);
+      console.log('🔄 updatePreview called with:', {
+        selectedFormat,
+        productPosition,
+        productScale,
+        isFirstMockup
+      });
 
-      // Apply product position/scale changes for first mockup
-      if (isFirstMockup && (productPosition || productScale !== 1.0 || mockup.originalFrame)) {
+      let processed;
+
+      // For first mockup with custom position/scale, skip processAndExport and go directly to transformations
+      if (isFirstMockup && (productPosition || productScale !== 1.0) && mockup.originalFrame) {
+        console.log('✅ First mockup with custom position/scale - using transformations directly');
         processed = await applyProductTransformations();
+      } else {
+        console.log('⏭️ Standard preview flow');
+        processed = await processAndExport(selectedFormat);
+
+        // Apply text overlay settings for first mockup (ONLY SOURCE OF TEXT)
+        // This REPLACES any existing text rather than adding duplicates
+        if (isFirstMockup && mockup.config?.productInfo) {
+          console.log('🎯 About to apply text overlay settings...');
+          processed = await applyTextOverlaySettings(processed);
+        }
       }
 
       // Render text elements on the canvas
@@ -116,7 +149,7 @@ export default function MockupCard({ mockup }: MockupCardProps) {
       setPreviewCanvas(withText);
     };
     updatePreview();
-  }, [selectedFormat, textElements, productPosition, productScale, isFirstMockup, mockup.originalFrame]);
+  }, [selectedFormat, textElements, productPosition, productScale, textOverlaySettings, isFirstMockup, mockup.originalFrame, mockup.config?.productInfo]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -441,11 +474,70 @@ export default function MockupCard({ mockup }: MockupCardProps) {
   };
 
   /**
+   * Apply text overlay settings to the mockup
+   * This redraws the product info overlays with new settings
+   */
+  const applyTextOverlaySettings = async (canvas: HTMLCanvasElement): Promise<HTMLCanvasElement> => {
+    if (!mockup.config?.productInfo || !mockup.originalFrame) {
+      console.log('⚠️ Skipping text overlays - no product info or frame');
+      return canvas;
+    }
+
+    console.log('🎨 Applying text overlay settings:', textOverlaySettings);
+
+    // Import the drawProductInfoOverlay function
+    const { drawProductInfoOverlay } = await import('@/lib/imageProcessing');
+
+    // Create a FRESH canvas - this ensures we don't draw over existing text
+    const newCanvas = document.createElement('canvas');
+    newCanvas.width = canvas.width;
+    newCanvas.height = canvas.height;
+    const ctx = newCanvas.getContext('2d')!;
+
+    // Draw ONLY the frame and product (NO existing text overlays)
+    // We draw from the original frame first, then composite the product
+    ctx.drawImage(mockup.originalFrame, 0, 0);
+
+    // Draw the product on top (without text overlays)
+    if (mockup.originalProduct && mockup.config && frameAnalysisRef.current) {
+      // Recomposite just the product without text overlays
+      const { compositeProductIntoFrame } = await import('@/lib/imageProcessing');
+      const tempConfig = { ...mockup.config, showProductInfo: false };
+      const productCanvas = await compositeProductIntoFrame(
+        mockup.originalProduct,
+        mockup.originalFrame,
+        frameAnalysisRef.current,
+        tempConfig
+      );
+      ctx.drawImage(productCanvas, 0, 0);
+    }
+
+    // NOW draw the text overlays with your settings (FIRST TIME ONLY)
+    const customConfig = {
+      ...mockup.config,
+      textOverlaySettings: textOverlaySettings,
+      showProductInfo: true
+    };
+
+    console.log('🎨 Drawing overlays with config:', customConfig);
+    await drawProductInfoOverlay(ctx, newCanvas, mockup.config.productInfo, customConfig);
+
+    console.log('✅ Text overlays applied successfully (NO duplicates)');
+    return newCanvas;
+  };
+
+  /**
    * Apply product transformations (position and scale) to the mockup
    * This re-composites the product with the frame using new position/scale
    */
   const applyProductTransformations = async (): Promise<HTMLCanvasElement> => {
     if (!isFirstMockup || !mockup.originalFrame || !mockup.originalProduct || !frameAnalysisRef.current) {
+      console.log('⚠️ Skipping product transformations - missing requirements:', {
+        isFirstMockup,
+        hasFrame: !!mockup.originalFrame,
+        hasProduct: !!mockup.originalProduct,
+        hasFrameAnalysis: !!frameAnalysisRef.current
+      });
       return previewCanvas!;
     }
 
@@ -455,23 +547,43 @@ export default function MockupCard({ mockup }: MockupCardProps) {
       const currentPosition = productPosition || { x: 0.5, y: 0.5 };
       const currentScale = productScale;
 
+      const pixelPosition = {
+        x: Math.round(currentPosition.x * mockup.originalFrame.width),
+        y: Math.round(currentPosition.y * mockup.originalFrame.height)
+      };
+
       console.log('🔄 Recompositing product:', {
         position: currentPosition,
-        scale: currentScale
+        scale: currentScale,
+        pixelPosition,
+        frameSize: { width: mockup.originalFrame.width, height: mockup.originalFrame.height }
       });
 
-      // Recomposite with new position and scale
-      const newCanvas = await recompositeProduct(
+      console.log('📊 Calling recompositeProduct with these parameters - check if product moves in result');
+
+      // Recomposite with new position and scale (NO text overlays during recompositing)
+      let finalCanvas = await recompositeProduct(
         mockup.originalFrame,
         mockup.originalProduct,
         frameAnalysisRef.current,
         currentPosition,
         currentScale,
-        mockup.config?.productInfo || null, // Pass productInfo for model overlay
+        mockup.config?.productInfo || null, // Pass productInfo
         undefined // No progress callback needed
       );
 
-      return newCanvas;
+      console.log('✅ Product recomposited successfully - final canvas size:', {
+        width: finalCanvas.width,
+        height: finalCanvas.height
+      });
+
+      // Apply text overlays after product transformation
+      if (mockup.config?.productInfo) {
+        console.log('🎨 Applying text overlays after product transformation...');
+        finalCanvas = await applyTextOverlaySettings(finalCanvas);
+      }
+
+      return finalCanvas;
     } catch (error) {
       console.error('❌ Recomposition failed:', error);
       return previewCanvas!;
@@ -485,6 +597,12 @@ export default function MockupCard({ mockup }: MockupCardProps) {
    */
   const handleProductMouseDown = (e: React.MouseEvent) => {
     if (!isFirstMockup) return;
+
+    console.log('🖱️ Product mouse down triggered!', {
+      showProductControls,
+      isFirstMockup,
+      productPosition
+    });
 
     e.preventDefault();
     e.stopPropagation();
@@ -507,6 +625,8 @@ export default function MockupCard({ mockup }: MockupCardProps) {
         canvasWidth: mockup.originalFrame.width,
         canvasHeight: mockup.originalFrame.height
       };
+
+      console.log('🎯 Drag start ref set:', productDragStartRef.current);
     }
   };
 
@@ -524,6 +644,8 @@ export default function MockupCard({ mockup }: MockupCardProps) {
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDraggingProduct || !productDragStartRef.current || !isFirstMockup) return;
+
+      console.log('🖱️ Mouse move while dragging product');
 
       const rect = previewContainerRef.current?.getBoundingClientRect();
       if (!rect || !mockup.originalFrame) return;
@@ -544,18 +666,23 @@ export default function MockupCard({ mockup }: MockupCardProps) {
       const normalizedX = clampedX / mockup.originalFrame.width;
       const normalizedY = clampedY / mockup.originalFrame.height;
 
+      console.log('📍 New product position:', { normalizedX, normalizedY, clampedX, clampedY });
+
       setProductPosition({ x: normalizedX, y: normalizedY });
     };
 
     const handleMouseUp = () => {
+      console.log('🖱️ Mouse up - ending product drag');
       setIsDraggingProduct(false);
       productDragStartRef.current = null;
     };
 
     if (isDraggingProduct) {
+      console.log('✅ Adding drag event listeners');
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
       return () => {
+        console.log('🧹 Removing drag event listeners');
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
       };
@@ -690,24 +817,27 @@ export default function MockupCard({ mockup }: MockupCardProps) {
               draggable={false}
               style={{ imageRendering: 'auto' }}
             />
-            {/* Product drag indicator for first mockup */}
-            {isFirstMockup && showProductControls && (
+            {/* Product drag indicator for first mockup - always present but conditionally visible */}
+            {isFirstMockup && (
               <div
-                className="absolute inset-0 cursor-move border-4 border-orange-500 border-dashed rounded-lg pointer-events-auto"
+                className={`absolute inset-0 cursor-move border-4 border-orange-500 border-dashed rounded-lg pointer-events-auto ${showProductControls ? 'opacity-100' : 'opacity-0'}`}
                 onMouseDown={handleProductMouseDown}
                 onClick={(e) => e.stopPropagation()}
+                onDragStart={(e) => e.preventDefault()}
                 style={{
                   zIndex: 10
                 }}
               >
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="bg-orange-600 text-white px-4 py-2 rounded-lg shadow-lg bg-opacity-90">
-                    <div className="flex items-center gap-2">
-                      <Type className="w-4 h-4" />
-                      <span className="text-sm font-medium">Drag product to move it around</span>
+                {showProductControls && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="bg-orange-600 text-white px-4 py-2 rounded-lg shadow-lg bg-opacity-90">
+                      <div className="flex items-center gap-2">
+                        <Type className="w-4 h-4" />
+                        <span className="text-sm font-medium">Drag product to move it around</span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
             {/* Text element overlays for dragging - only show when text editor is open */}
@@ -859,6 +989,7 @@ export default function MockupCard({ mockup }: MockupCardProps) {
                 if (!showProductControls) {
                   setShowTextEditor(false);
                 }
+                // Don't hide text overlay controls - allow both to be open
               }}
               className={`w-full mb-2 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
                 showProductControls || productPosition || productScale !== 1.0
@@ -871,7 +1002,7 @@ export default function MockupCard({ mockup }: MockupCardProps) {
             </button>
             {showProductControls && (
               <p className="text-xs text-orange-600 text-center">
-                💡 Drag product on image to move • Click elsewhere to add text
+                💡 Drag product on image to move • Both text & product controls can be open together
               </p>
             )}
 
@@ -920,10 +1051,10 @@ export default function MockupCard({ mockup }: MockupCardProps) {
                 {/* Reset Button */}
                 <button
                   onClick={() => {
-                    // Reset to requested defaults: X: 229px, Y: 310px, Scale: 400%
+                    // Reset to original position: X: 618px, Y: 789px, Scale: 400%
                     if (mockup.originalFrame) {
-                      const initialX = 229 / mockup.originalFrame.width;
-                      const initialY = 310 / mockup.originalFrame.height;
+                      const initialX = 618 / mockup.originalFrame.width;
+                      const initialY = 789 / mockup.originalFrame.height;
                       setProductPosition({ x: initialX, y: initialY });
                     }
                     setProductScale(4.0);
@@ -934,6 +1065,446 @@ export default function MockupCard({ mockup }: MockupCardProps) {
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Text Overlay Controls Button */}
+        <button
+          onClick={() => {
+            setShowTextOverlayControls(!showTextOverlayControls);
+            // When opening text overlay controls, hide text editor to avoid conflicts
+            if (!showTextOverlayControls) {
+              setShowTextEditor(false);
+            }
+            // Don't hide product controls - allow both to be open
+          }}
+          className={`w-full mb-3 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+            showTextOverlayControls
+              ? 'bg-blue-600 text-white hover:bg-blue-700'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          <Type className="w-4 h-4" />
+          {showTextOverlayControls ? 'Hide Text Overlay Controls' : 'Edit Text Overlays'}
+        </button>
+
+        {/* Text Overlay Controls Panel */}
+        {showTextOverlayControls && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+            <p className="text-xs text-blue-600 text-center font-medium">
+              💡 Adjust text overlay settings below - changes apply in real-time
+            </p>
+
+            {/* Model Text Controls */}
+            <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                <h4 className="font-bold text-sm text-red-900">🎯 MODEL TEXT (Example: PG27AQNM)</h4>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">X Position (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.model.x}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, model: {...textOverlaySettings.model, x: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-red-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Y Position (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.model.y}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, model: {...textOverlaySettings.model, y: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-red-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Font Size (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.model.fontSize}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, model: {...textOverlaySettings.model, fontSize: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-red-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Max Width (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.model.maxWidth}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, model: {...textOverlaySettings.model, maxWidth: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-red-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Max Height (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.model.maxHeight}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, model: {...textOverlaySettings.model, maxHeight: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-red-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Alignment</label>
+                  <select
+                    value={textOverlaySettings.model.align}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, model: {...textOverlaySettings.model, align: e.target.value as 'left' | 'center' | 'right'}})}
+                    className="w-full px-2 py-1 border border-red-300 rounded text-sm bg-white text-gray-700"
+                  >
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Brief Name Controls */}
+            <div className="bg-purple-50 border-2 border-purple-300 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                <h4 className="font-bold text-sm text-purple-900">📝 BRIEF NAME (Example: ROG STRIX)</h4>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">X Position (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.briefName.x}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, briefName: {...textOverlaySettings.briefName, x: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-purple-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Y Position (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.briefName.y}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, briefName: {...textOverlaySettings.briefName, y: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-purple-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Font Size (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.briefName.fontSize}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, briefName: {...textOverlaySettings.briefName, fontSize: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-purple-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Max Width (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.briefName.maxWidth}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, briefName: {...textOverlaySettings.briefName, maxWidth: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-purple-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Max Height (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.briefName.maxHeight}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, briefName: {...textOverlaySettings.briefName, maxHeight: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-purple-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Line Spacing (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.briefName.lineHeight}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, briefName: {...textOverlaySettings.briefName, lineHeight: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-purple-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Alignment</label>
+                  <select
+                    value={textOverlaySettings.briefName.align}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, briefName: {...textOverlaySettings.briefName, align: e.target.value as 'left' | 'center' | 'right'}})}
+                    className="w-full px-2 py-1 border border-purple-300 rounded text-sm bg-white text-gray-700"
+                  >
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Size Controls */}
+            <div className="bg-green-50 border-2 border-green-300 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <h4 className="font-bold text-sm text-green-900">📏 SIZE (Example: 27 inch)</h4>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">X Position (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.size.x}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, size: {...textOverlaySettings.size, x: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-green-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Y Position (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.size.y}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, size: {...textOverlaySettings.size, y: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-green-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Font Size (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.size.fontSize}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, size: {...textOverlaySettings.size, fontSize: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-green-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Max Width (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.size.maxWidth}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, size: {...textOverlaySettings.size, maxWidth: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-green-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Line Spacing (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.size.lineHeight}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, size: {...textOverlaySettings.size, lineHeight: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-green-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Alignment</label>
+                  <select
+                    value={textOverlaySettings.size.align}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, size: {...textOverlaySettings.size, align: e.target.value as 'left' | 'center' | 'right'}})}
+                    className="w-full px-2 py-1 border border-green-300 rounded text-sm bg-white text-gray-700"
+                  >
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Resolution Controls */}
+            <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                <h4 className="font-bold text-sm text-blue-900">🖥️ RESOLUTION (Example: WQHD 2560 x 1440)</h4>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">X Position (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.resolution.x}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, resolution: {...textOverlaySettings.resolution, x: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-blue-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Y Position (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.resolution.y}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, resolution: {...textOverlaySettings.resolution, y: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-blue-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Font Size (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.resolution.fontSize}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, resolution: {...textOverlaySettings.resolution, fontSize: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-blue-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Max Width (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.resolution.maxWidth}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, resolution: {...textOverlaySettings.resolution, maxWidth: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-blue-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Line Spacing (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.resolution.lineHeight}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, resolution: {...textOverlaySettings.resolution, lineHeight: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-blue-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Alignment</label>
+                  <select
+                    value={textOverlaySettings.resolution.align}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, resolution: {...textOverlaySettings.resolution, align: e.target.value as 'left' | 'center' | 'right'}})}
+                    className="w-full px-2 py-1 border border-blue-300 rounded text-sm bg-white text-gray-700"
+                  >
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Response Time Controls */}
+            <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                <h4 className="font-bold text-sm text-yellow-900">⚡ RESPONSE TIME (Example: 1ms)</h4>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">X Position (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.responseTime.x}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, responseTime: {...textOverlaySettings.responseTime, x: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-yellow-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Y Position (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.responseTime.y}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, responseTime: {...textOverlaySettings.responseTime, y: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-yellow-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Font Size (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.responseTime.fontSize}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, responseTime: {...textOverlaySettings.responseTime, fontSize: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-yellow-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Max Width (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.responseTime.maxWidth}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, responseTime: {...textOverlaySettings.responseTime, maxWidth: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-yellow-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Line Spacing (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.responseTime.lineHeight}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, responseTime: {...textOverlaySettings.responseTime, lineHeight: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-yellow-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Alignment</label>
+                  <select
+                    value={textOverlaySettings.responseTime.align}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, responseTime: {...textOverlaySettings.responseTime, align: e.target.value as 'left' | 'center' | 'right'}})}
+                    className="w-full px-2 py-1 border border-yellow-300 rounded text-sm bg-white text-gray-700"
+                  >
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Refresh Rate Controls */}
+            <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                <h4 className="font-bold text-sm text-orange-900">🔄 REFRESH RATE (Example: 180Hz)</h4>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">X Position (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.refreshRate.x}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, refreshRate: {...textOverlaySettings.refreshRate, x: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-orange-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Y Position (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.refreshRate.y}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, refreshRate: {...textOverlaySettings.refreshRate, y: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-orange-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Font Size (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.refreshRate.fontSize}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, refreshRate: {...textOverlaySettings.refreshRate, fontSize: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-orange-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Max Width (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.refreshRate.maxWidth}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, refreshRate: {...textOverlaySettings.refreshRate, maxWidth: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-orange-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Line Spacing (px)</label>
+                  <input
+                    type="number"
+                    value={textOverlaySettings.refreshRate.lineHeight}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, refreshRate: {...textOverlaySettings.refreshRate, lineHeight: Number(e.target.value)}})}
+                    className="w-full px-2 py-1 border border-orange-300 rounded text-sm bg-white text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Alignment</label>
+                  <select
+                    value={textOverlaySettings.refreshRate.align}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, refreshRate: {...textOverlaySettings.refreshRate, align: e.target.value as 'left' | 'center' | 'right'}})}
+                    className="w-full px-2 py-1 border border-orange-300 rounded text-sm bg-white text-gray-700"
+                  >
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                  </select>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
