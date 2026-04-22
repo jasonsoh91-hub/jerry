@@ -217,8 +217,10 @@ export async function recompositeProduct(
   onProgress?: (progress: ProcessingProgress) => void
 ): Promise<HTMLCanvasElement> {
   try {
-    // Create canvas at frame size
+    // Create canvas at frame size - force new reference each time
     const canvas = document.createElement('canvas');
+    // Add unique timestamp to force new reference
+    (canvas as any).__recompositeTimestamp = Date.now();
     canvas.width = originalFrame.width;
     canvas.height = originalFrame.height;
     const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
