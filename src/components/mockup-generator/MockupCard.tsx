@@ -137,22 +137,24 @@ export default function MockupCard({ mockup }: MockupCardProps) {
           prevCanvasSize: previewCanvas ? `${previewCanvas.width}x${previewCanvas.height}` : 'none'
         });
 
-        // CRITICAL: Check if canvas actually changed
-        if (processed === previewCanvas) {
-          console.error('❌❌❌ MAJOR ISSUE: Canvas reference is THE SAME! React won\'t re-render!');
+        // Canvas reference check - we have a fallback if references match
+        if (processed === previewCanvas && processed) {
+          console.log('🔄 Canvas reference unchanged - using fallback to force React re-render');
           // FORCE NEW CANVAS: Create a fresh copy if references are the same
           const forceNewCanvas = document.createElement('canvas');
           forceNewCanvas.width = processed.width;
           forceNewCanvas.height = processed.height;
           const newCtx = forceNewCanvas.getContext('2d')!;
           newCtx.drawImage(processed, 0, 0);
-          console.log('🔄 Created forced new canvas reference');
+          console.log('✅ Created new canvas reference - React will re-render');
           setPreviewCanvas(forceNewCanvas);
           setCanvasUpdateTime(Date.now());
-        } else {
-          console.log('✅ Canvas reference is DIFFERENT - React should re-render');
+        } else if (processed) {
+          console.log('✅ Canvas reference changed - React will re-render normally');
           setPreviewCanvas(processed);
           setCanvasUpdateTime(Date.now());
+        } else {
+          console.warn('⚠️ No canvas returned from transformations');
         }
 
         console.log('✅ setPreviewCanvas and setCanvasUpdateTime called - IMAGE SHOULD UPDATE');
