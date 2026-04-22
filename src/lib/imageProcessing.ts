@@ -550,6 +550,27 @@ export function applyLightingEffects(
 }
 
 /**
+ * Ensure custom fonts are loaded before canvas operations
+ */
+async function ensureFontsLoaded(): Promise<void> {
+  const fonts = [
+    new FontFace('UPHEAVTT', 'url(/fonts/UPHEAVTT.TTF)'),
+    new FontFace('Causten', 'url(/fonts/Causten-Bold.otf)')
+  ];
+
+  // Wait for fonts to load and add to document
+  await Promise.all(fonts.map(async font => {
+    try {
+      await font.load();
+      document.fonts.add(font);
+      console.log(`✅ Font loaded: ${font.family}`);
+    } catch (error) {
+      console.warn('Font failed to load, will use fallbacks:', font.family);
+    }
+  }));
+}
+
+/**
  * Draw product information overlay on the canvas
  * Creates styled boxes with product details, specs, and features
  */
@@ -559,6 +580,11 @@ export async function drawProductInfoOverlay(
   productInfo: any,
   config: any
 ): Promise<void> {
+  // Ensure fonts are loaded before drawing
+  if (typeof document !== 'undefined') {
+    await ensureFontsLoaded();
+  }
+
   console.log('🔍 drawProductInfoOverlay called with:', {
     hasProductInfo: !!productInfo,
     showProductInfo: config?.showProductInfo,
