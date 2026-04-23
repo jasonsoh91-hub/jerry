@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Using AI to extract product info from:', productName);
     console.log('🔍 Checking if product name contains SE2225HM:', productName.toUpperCase().includes('SE2225HM'));
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
 
     let prompt = `You are a product specification expert. Extract the following information from this product name: "${productName}"`;
 
