@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Using AI to extract product info from:', productName);
     console.log('🔍 Checking if product name contains SE2225HM:', productName.toUpperCase().includes('SE2225HM'));
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     let prompt = `You are a product specification expert. Extract the following information from this product name: "${productName}"`;
 
@@ -35,16 +35,18 @@ export async function POST(request: NextRequest) {
   "model": "extract the model number (e.g., SE2225HM)",
   "briefName": "create a short product name like "DELL SE SERIES LED MONITOR"",
   "size": "extract screen size in inches (e.g., "22 Inch", "23.8 Inch") - look for numbers followed by 'inch' or 'inches' or quotes. NEVER put resolution numbers here.",
-  "resolution": "extract display resolution format like '1920 x 1080' or '2560 x 1440' - look for patterns like '1920x1080' or 'Full HD' or 'FHD'. NEVER put inch measurements here.",
-  "refreshRate": "extract refresh rate in Hz (e.g., "100Hz", "75Hz") - look for numbers followed by 'Hz' or 'hertz'",
+  "resolution": "extract display resolution format like '1920 x 1080' - look for patterns like '1920x1080'. If you find 'Full HD' or 'FHD' in the content, add 'FHD' at the end like '1920 x 1080 FHD'. NEVER put inch measurements here.",
+  "refreshRate": "extract refresh rate in Hz (e.g., "100Hz", "75Hz", "120Hz") - look for numbers followed by 'Hz' or 'hertz'. Be careful to find the CORRECT refresh rate, not just any Hz value.",
+  "responseTime": "extract response time in milliseconds (e.g., "1ms", "4ms", "5ms") - look for 'ms' or 'millisecond' or 'response time'",
   "ports": "extract connection ports like 'HDMI port and VGA port' or 'DisplayPort' - look for 'HDMI', 'VGA', 'DisplayPort', 'DVI' connections",
   "warranty": "extract warranty period like '3 Years' or '1 Year' - look for warranty information with years"
 }
 
 CRITICAL FIELD DISTINCTIONS:
 - Size = inch measurements (22, 23.8, 27, etc.)
-- Resolution = pixel format (1920 x 1080, 2560 x 1440, etc.)
-- Refresh Rate = Hz values (60Hz, 75Hz, 100Hz, etc.)
+- Resolution = pixel format (1920 x 1080, 2560 x 1440, etc.) - add "FHD" if Full HD mentioned
+- Refresh Rate = Hz values (60Hz, 75Hz, 100Hz, 120Hz, etc.) - find the DISPLAY refresh rate specifically
+- Response Time = ms values (1ms, 4ms, 5ms, etc.)
 
 IMPORTANT: Return empty string "", NOT "empty", if information is not found.`;
 
@@ -92,6 +94,7 @@ IMPORTANT: Return empty string "", NOT "empty", if information is not found.`;
         size: '',
         resolution: '',
         refreshRate: '',
+        responseTime: '',
         ports: '',
         warranty: ''
       };
@@ -113,6 +116,7 @@ IMPORTANT: Return empty string "", NOT "empty", if information is not found.`;
       size: '',
       resolution: '',
       refreshRate: '',
+      responseTime: '',
       ports: '',
       warranty: ''
     };
