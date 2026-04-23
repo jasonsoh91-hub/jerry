@@ -657,26 +657,77 @@ export async function drawProductInfoOverlay(
   // Brand rendering has been removed
   console.log('ℹ️ Brand rendering disabled - brand text no longer appears in mockups');
 
-  // Draw brief name at specified position with text wrapping
+  // Draw brief name at specified position with X/Y range and auto-sizing
   if (productInfo.briefName) {
     ctx.save();
 
     const briefText = productInfo.briefName;
     // Use custom settings if available, otherwise use defaults
     const briefSettings = customSettings.briefName || {};
-    const briefX = briefSettings.x || 40;
-    const briefY = briefSettings.y || 200;
-    const briefFontSize = briefSettings.fontSize || 70;
+    const xMin = briefSettings.xMin !== undefined ? briefSettings.xMin : 40;
+    const xMax = briefSettings.xMax !== undefined ? briefSettings.xMax : 640;
+    const yMin = briefSettings.yMin !== undefined ? briefSettings.yMin : 200;
+    const yMax = briefSettings.yMax !== undefined ? briefSettings.yMax : 370;
     const briefColor = '#3a1f92'; // Purple color
-    const maxWidth = briefSettings.maxWidth || 600;
-    const lineHeight = briefSettings.lineHeight || 85;
     const briefAlign = briefSettings.align || 'left';
 
-    console.log(`✏️ Drawing brief name "${briefText}" at X:${briefX}, Y:${briefY} with line spacing ${lineHeight}px and alignment: ${briefAlign}`);
+    const briefWidth = xMax - xMin;
+    const briefHeight = yMax - yMin;
 
-    // Use UPHEAVTT font (local font), fallback to Orbitron and sci-fi fonts
-    // Added "900" font weight for extra bold/thick appearance
-    const briefFont = `900 ${briefFontSize}px "UPHEAVTT", "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
+    console.log(`✏️ Drawing brief name "${briefText}" in range X:${xMin}-${xMax}, Y:${yMin}-${yMax} (${briefWidth}x${briefHeight}px) with alignment: ${briefAlign}`);
+
+    // Auto-calculate optimal font size AND line spacing to fit within the area
+    const fontFamily = '"UPHEAVTT", "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif';
+    let minSize = 10;
+    let maxSize = 200;
+    let bestFontSize = minSize;
+    let bestLineHeight = 12;
+
+    // Binary search for optimal font size
+    while (minSize <= maxSize) {
+      const midSize = Math.floor((minSize + maxSize) / 2);
+      ctx.font = `900 ${midSize}px ${fontFamily}`;
+
+      // Simulate text wrapping
+      const words = briefText.split(' ');
+      let line = '';
+      let lines = [];
+
+      for (let i = 0; i < words.length; i++) {
+        const testLine = line + words[i] + ' ';
+        const metrics = ctx.measureText(testLine);
+        const testWidth = metrics.width;
+
+        if (testWidth > briefWidth && i > 0) {
+          lines.push(line.trim());
+          line = words[i] + ' ';
+        } else {
+          line = testLine;
+        }
+      }
+      lines.push(line.trim());
+
+      // Calculate optimal line spacing to fill height
+      const numberOfLines = lines.length;
+      const lineHeight = Math.floor(briefHeight / numberOfLines);
+
+      // Check if fits within bounds
+      const fitsWidth = lines.every(line => ctx.measureText(line).width <= briefWidth);
+      const fitsHeight = lineHeight >= midSize * 0.8; // Minimum line height: 0.8x font size
+
+      if (fitsWidth && fitsHeight) {
+        bestFontSize = midSize;
+        bestLineHeight = lineHeight;
+        minSize = midSize + 1; // Try larger
+      } else {
+        maxSize = midSize - 1; // Too big, try smaller
+      }
+    }
+
+    console.log(`🎯 Auto-calculated: font ${bestFontSize}px, line spacing ${bestLineHeight}px for text "${briefText}" within ${briefWidth}x${briefHeight}`);
+
+    // Use the calculated optimal font size and line spacing
+    const briefFont = `900 ${bestFontSize}px ${fontFamily}`;
     ctx.font = briefFont;
     ctx.fillStyle = briefColor;
     ctx.textBaseline = 'top';
@@ -685,10 +736,10 @@ export async function drawProductInfoOverlay(
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
     ctx.lineWidth = 3;
 
-    // Wrap text if it exceeds maxWidth
+    // Wrap text if it exceeds briefWidth
     const words = briefText.split(' ');
     let line = '';
-    let currentY = briefY;
+    let currentY = yMin;
     const lines = [];
 
     // First, build all lines
@@ -697,7 +748,7 @@ export async function drawProductInfoOverlay(
       const metrics = ctx.measureText(testLine);
       const testWidth = metrics.width;
 
-      if (testWidth > maxWidth && i > 0) {
+      if (testWidth > briefWidth && i > 0) {
         lines.push(line.trim());
         line = words[i] + ' ';
       } else {
@@ -706,31 +757,31 @@ export async function drawProductInfoOverlay(
     }
     lines.push(line.trim());
 
-    // Now draw each line with proper alignment relative to range [briefX, briefX + maxWidth]
+    // Now draw each line with proper alignment relative to range [xMin, xMax]
     for (let i = 0; i < lines.length; i++) {
       const lineText = lines[i];
-      let drawX = briefX;
+      let drawX = xMin;
 
       if (briefAlign === 'center') {
-        // Center: Text is centered in range [X, X + maxWidth]
+        // Center: Text is centered in range [xMin, xMax]
         ctx.textAlign = 'center';
-        drawX = briefX + maxWidth / 2;
+        drawX = xMin + briefWidth / 2;
       } else if (briefAlign === 'right') {
-        // Right: Text ends at X + maxWidth
+        // Right: Text ends at xMax
         ctx.textAlign = 'right';
-        drawX = briefX + maxWidth;
+        drawX = xMax;
       } else {
-        // Left: Text starts at X
+        // Left: Text starts at xMin
         ctx.textAlign = 'left';
       }
 
       ctx.strokeText(lineText, drawX, currentY);
       ctx.fillText(lineText, drawX, currentY);
-      currentY += lineHeight;
+      currentY += bestLineHeight;
     }
 
     ctx.restore();
-    console.log(`✅ Brief name "${briefText}" drawn at X:${briefX}, Y:${briefY} with font "UPHEAVTT" size ${briefFontSize} - Color: ${briefColor} - Line spacing: ${lineHeight}px - Alignment: ${briefAlign}`);
+    console.log(`✅ Brief name "${briefText}" drawn in range X:${xMin}-${xMax}, Y:${yMin}-${yMax} with font "UPHEAVTT" size ${bestFontSize} - Color: ${briefColor} - Line spacing: ${bestLineHeight}px - Alignment: ${briefAlign}`);
   }
 
   // Draw size at specified position with text wrapping (same column as brief name)

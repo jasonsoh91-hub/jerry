@@ -15,11 +15,11 @@ export type ProductImages = {
 export const DEFAULT_TEXT_OVERLAY_SETTINGS = {
   model: { x: 750, y: 185, fontSize: 110, maxWidth: 1000, maxHeight: 150, align: 'left' },
   brand: { x: 300, y: 300, fontSize: 70, maxWidth: 600, maxHeight: 80, align: 'left' },
-  briefName: { x: 40, y: 200, fontSize: 70, maxWidth: 600, maxHeight: 100, lineHeight: 60, align: 'left' },
-  size: { x: 15, y: 377, fontSize: 70, maxWidth: 600, lineHeight: 100, align: 'center' },
-  resolution: { x: 15, y: 497, fontSize: 70, maxWidth: 600, lineHeight: 100, align: 'center' },
-  responseTime: { x: 15, y: 615, fontSize: 70, maxWidth: 600, lineHeight: 100, align: 'center' },
-  refreshRate: { x: 15, y: 738, fontSize: 70, maxWidth: 600, lineHeight: 100, align: 'center' }
+  briefName: { xMin: 40, xMax: 640, yMin: 200, yMax: 330, align: 'left' }, // Auto font & spacing - LOCKED
+  size: { x: 15, y: 377, fontSize: 65, maxWidth: 600, maxHeight: 120, lineHeight: 50, align: 'center' },
+  resolution: { x: 15, y: 497, fontSize: 65, maxWidth: 600, maxHeight: 120, lineHeight: 50, align: 'center' },
+  responseTime: { x: 15, y: 615, fontSize: 65, maxWidth: 600, maxHeight: 120, lineHeight: 50, align: 'center' },
+  refreshRate: { x: 15, y: 738, fontSize: 65, maxWidth: 600, maxHeight: 120, lineHeight: 50, align: 'center' }
 };
 
 /**

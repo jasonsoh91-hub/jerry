@@ -1289,63 +1289,46 @@ export default function MockupCard({ mockup }: MockupCardProps) {
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
                 <h4 className="font-bold text-sm text-purple-900">📝 BRIEF NAME (Example: ROG STRIX)</h4>
+                <p className="text-xs text-purple-700">✨ Auto font & spacing - just define the area!</p>
               </div>
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700">X Position (px)</label>
+                  <label className="block text-xs font-medium text-gray-700">X Min (px)</label>
                   <input
                     type="number"
-                    value={textOverlaySettings.briefName.x}
-                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, briefName: {...textOverlaySettings.briefName, x: Number(e.target.value)}})}
+                    value={textOverlaySettings.briefName.xMin !== undefined ? textOverlaySettings.briefName.xMin : 40}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, briefName: {...textOverlaySettings.briefName, xMin: Number(e.target.value)}})}
                     className="w-full px-2 py-1 border border-purple-300 rounded text-sm bg-white text-gray-700"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700">Y Position (px)</label>
+                  <label className="block text-xs font-medium text-gray-700">X Max (px)</label>
                   <input
                     type="number"
-                    value={textOverlaySettings.briefName.y}
-                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, briefName: {...textOverlaySettings.briefName, y: Number(e.target.value)}})}
+                    value={textOverlaySettings.briefName.xMax !== undefined ? textOverlaySettings.briefName.xMax : 640}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, briefName: {...textOverlaySettings.briefName, xMax: Number(e.target.value)}})}
                     className="w-full px-2 py-1 border border-purple-300 rounded text-sm bg-white text-gray-700"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700">Font Size (px)</label>
+                  <label className="block text-xs font-medium text-gray-700">Y Min (px)</label>
                   <input
                     type="number"
-                    value={textOverlaySettings.briefName.fontSize}
-                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, briefName: {...textOverlaySettings.briefName, fontSize: Number(e.target.value)}})}
+                    value={textOverlaySettings.briefName.yMin !== undefined ? textOverlaySettings.briefName.yMin : 200}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, briefName: {...textOverlaySettings.briefName, yMin: Number(e.target.value)}})}
                     className="w-full px-2 py-1 border border-purple-300 rounded text-sm bg-white text-gray-700"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700">Max Width (px)</label>
+                  <label className="block text-xs font-medium text-gray-700">Y Max (px)</label>
                   <input
                     type="number"
-                    value={textOverlaySettings.briefName.maxWidth}
-                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, briefName: {...textOverlaySettings.briefName, maxWidth: Number(e.target.value)}})}
+                    value={textOverlaySettings.briefName.yMax !== undefined ? textOverlaySettings.briefName.yMax : 370}
+                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, briefName: {...textOverlaySettings.briefName, yMax: Number(e.target.value)}})}
                     className="w-full px-2 py-1 border border-purple-300 rounded text-sm bg-white text-gray-700"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700">Max Height (px)</label>
-                  <input
-                    type="number"
-                    value={textOverlaySettings.briefName.maxHeight}
-                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, briefName: {...textOverlaySettings.briefName, maxHeight: Number(e.target.value)}})}
-                    className="w-full px-2 py-1 border border-purple-300 rounded text-sm bg-white text-gray-700"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700">Line Spacing (px)</label>
-                  <input
-                    type="number"
-                    value={textOverlaySettings.briefName.lineHeight}
-                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, briefName: {...textOverlaySettings.briefName, lineHeight: Number(e.target.value)}})}
-                    className="w-full px-2 py-1 border border-purple-300 rounded text-sm bg-white text-gray-700"
-                  />
-                </div>
-                <div>
+                <div className="col-span-2">
                   <label className="block text-xs font-medium text-gray-700">Alignment</label>
                   <select
                     value={textOverlaySettings.briefName.align}
