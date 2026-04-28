@@ -247,38 +247,10 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
             <span>All fields are editable - modify as needed</span>
           </div>
 
-          {/* 1. Model */}
+          {/* 1. Brief Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              1. Model <span className="text-xs text-gray-500">(extracted from product name)</span>
-            </label>
-            <input
-              type="text"
-              value={productInfo.model}
-              onChange={(e) => updateField('model', e.target.value)}
-              placeholder="e.g., SE2225HM"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-            />
-          </div>
-
-          {/* 2. Brand */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              2. Brand <span className="text-xs text-gray-500">(extracted from product name)</span>
-            </label>
-            <input
-              type="text"
-              value={productInfo.brand}
-              onChange={(e) => updateField('brand', e.target.value)}
-              placeholder="e.g., DELL"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-            />
-          </div>
-
-          {/* 3. Brief Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              3. Brief Naming <span className="text-xs text-gray-500">(short product description)</span>
+              1. Brief Naming <span className="text-xs text-gray-500">(short product description)</span>
             </label>
             <input
               type="text"
@@ -289,10 +261,10 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
             />
           </div>
 
-          {/* 4. Size */}
+          {/* 2. Size */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              4. Size <span className="text-xs text-gray-500">(screen size)</span>
+              2. Size <span className="text-xs text-gray-500">(screen size)</span>
             </label>
             <input
               type="text"
@@ -303,10 +275,10 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
             />
           </div>
 
-          {/* 5. Resolution */}
+          {/* 3. Resolution */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              5. Resolution <span className="text-xs text-gray-500">(display resolution)</span>
+              3. Resolution <span className="text-xs text-gray-500">(display resolution)</span>
             </label>
             <input
               type="text"
@@ -317,10 +289,10 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
             />
           </div>
 
-          {/* 6. Response Time */}
+          {/* 4. Response Time */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              6. Response Time <span className="text-xs text-gray-500">(ms)</span>
+              4. Response Time <span className="text-xs text-gray-500">(ms)</span>
             </label>
             <input
               type="text"
@@ -331,10 +303,10 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
             />
           </div>
 
-          {/* 7. Refresh Rate */}
+          {/* 5. Refresh Rate */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              7. Refresh Rate <span className="text-xs text-gray-500">(Hz)</span>
+              5. Refresh Rate <span className="text-xs text-gray-500">(Hz)</span>
             </label>
             <input
               type="text"
