@@ -518,8 +518,8 @@ export default function MockupCard({ mockup }: MockupCardProps) {
 
     console.log('🎨 Applying text overlay settings:', textOverlaySettings, { skipProductRecomposite });
 
-    // Import the drawProductInfoOverlay function
-    const { drawProductInfoOverlay } = await import('@/lib/imageProcessing');
+    // Import the drawProductInfoOverlay, drawPortIconsOverlay, and drawBrandLogoOverlay functions
+    const { drawProductInfoOverlay, drawPortIconsOverlay, drawBrandLogoOverlay } = await import('@/lib/imageProcessing');
 
     let newCanvas: HTMLCanvasElement;
     let ctx: CanvasRenderingContext2D;
@@ -570,6 +570,16 @@ export default function MockupCard({ mockup }: MockupCardProps) {
 
     console.log('🎨 Drawing overlays with config:', customConfig);
     await drawProductInfoOverlay(ctx, newCanvas, mockup.config.productInfo, customConfig);
+
+    // Also apply port icons overlay when re-applying text overlays
+    console.log('🔌 Re-applying port icons overlay...');
+    await drawPortIconsOverlay(ctx, newCanvas, mockup.config.productInfo);
+    console.log('✅ Port icons re-applied successfully');
+
+    // Also apply brand logo overlay when re-applying text overlays
+    console.log('🏢 Re-applying brand logo overlay...');
+    await drawBrandLogoOverlay(ctx, newCanvas, mockup.config.productInfo);
+    console.log('✅ Brand logo re-applied successfully');
 
     console.log('✅ Text overlays applied successfully (NO duplicates)');
     return newCanvas;
@@ -1208,73 +1218,6 @@ export default function MockupCard({ mockup }: MockupCardProps) {
                     value={textOverlaySettings.model.align}
                     onChange={(e) => setTextOverlaySettings({...textOverlaySettings, model: {...textOverlaySettings.model, align: e.target.value as 'left' | 'center' | 'right'}})}
                     className="w-full px-2 py-1 border border-red-300 rounded text-sm bg-white text-gray-700"
-                  >
-                    <option value="left">Left</option>
-                    <option value="center">Center</option>
-                    <option value="right">Right</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Brand Text Controls */}
-            <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                <h4 className="font-bold text-sm text-orange-900">🏷️ BRAND TEXT (Example: DELL)</h4>
-              </div>
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700">X Position (px)</label>
-                  <input
-                    type="number"
-                    value={textOverlaySettings.brand.x}
-                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, brand: {...textOverlaySettings.brand, x: Number(e.target.value)}})}
-                    className="w-full px-2 py-1 border border-orange-300 rounded text-sm bg-white text-gray-700"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700">Y Position (px)</label>
-                  <input
-                    type="number"
-                    value={textOverlaySettings.brand.y}
-                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, brand: {...textOverlaySettings.brand, y: Number(e.target.value)}})}
-                    className="w-full px-2 py-1 border border-orange-300 rounded text-sm bg-white text-gray-700"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700">Font Size (px)</label>
-                  <input
-                    type="number"
-                    value={textOverlaySettings.brand.fontSize}
-                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, brand: {...textOverlaySettings.brand, fontSize: Number(e.target.value)}})}
-                    className="w-full px-2 py-1 border border-orange-300 rounded text-sm bg-white text-gray-700"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700">Max Width (px)</label>
-                  <input
-                    type="number"
-                    value={textOverlaySettings.brand.maxWidth}
-                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, brand: {...textOverlaySettings.brand, maxWidth: Number(e.target.value)}})}
-                    className="w-full px-2 py-1 border border-orange-300 rounded text-sm bg-white text-gray-700"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700">Max Height (px)</label>
-                  <input
-                    type="number"
-                    value={textOverlaySettings.brand.maxHeight}
-                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, brand: {...textOverlaySettings.brand, maxHeight: Number(e.target.value)}})}
-                    className="w-full px-2 py-1 border border-orange-300 rounded text-sm bg-white text-gray-700"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700">Alignment</label>
-                  <select
-                    value={textOverlaySettings.brand.align}
-                    onChange={(e) => setTextOverlaySettings({...textOverlaySettings, brand: {...textOverlaySettings.brand, align: e.target.value as 'left' | 'center' | 'right'}})}
-                    className="w-full px-2 py-1 border border-orange-300 rounded text-sm bg-white text-gray-700"
                   >
                     <option value="left">Left</option>
                     <option value="center">Center</option>

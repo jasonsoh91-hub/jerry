@@ -1,18 +1,148 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import * as XLSX from 'xlsx';
+import { readFile } from 'fs/promises';
+import { existsSync } from 'fs';
+import path from 'path';
 
 /**
- * Smart Product Information Extraction
- * Automatically searches for official product websites and extracts accurate specifications
+ * Smart Product Information Extraction with Multi-Tier Fallback
+ * 1. Excel database (primary)
+ * 2. Cached JSON files (fallback)
+ * 3. Web scraping (last resort)
  */
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 const SERPAPI_KEY = process.env.SERPAPI_KEY || '';
 
-interface SearchResult {
-  title: string;
-  link: string;
-  snippet: string;
+// Excel file path
+const EXCEL_PATH = path.join(process.cwd(), 'dell_monitors_transformed.xlsx');
+
+interface ProductInfo {
+  model: string;
+  briefName: string;
+  size: string;
+  resolution: string;
+  refreshRate: string;
+  responseTime: string;
+  ports: string;
+  warranty: string;
+}
+
+/**
+ * TIER 1: Load product info from Excel database
+ */
+async function getFromExcel(modelCode: string): Promise<ProductInfo | null> {
+  try {
+    if (!existsSync(EXCEL_PATH)) {
+      console.log('⚠️ Excel file not found:', EXCEL_PATH);
+      return null;
+    }
+
+    console.log('📊 TIER 1: Checking Excel database for model:', modelCode);
+
+    const workbook = XLSX.readFile(EXCEL_PATH);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const data = XLSX.utils.sheet_to_json(worksheet);
+
+    // Find matching product by model code
+    for (const row of data as any) {
+      const rowModel = String(row['Model'] || '').toUpperCase().trim();
+      const searchModel = modelCode.toUpperCase().trim();
+
+      if (rowModel === searchModel || rowModel.includes(searchModel) || searchModel.includes(rowModel)) {
+        console.log('✅ Found in Excel database:', rowModel);
+
+        // Map Excel columns to ProductInfo
+        const info: ProductInfo = {
+          model: String(row['Model'] || ''),
+          briefName: String(row['Brief Naming'] || ''),
+          size: String(row['Size'] || '').replace(/"/g, '') || '',
+          resolution: String(row['Resolution'] || '') || '',
+          refreshRate: String(row['Refresh Rate'] || '') || '',
+          responseTime: String(row['Response Time'] || '') || '',
+          ports: String(row['Compatible Ports'] || '') || '',
+          warranty: String(row['Warranty'] || '') || ''
+        };
+
+        // Clean up "N/A" values
+        Object.keys(info).forEach(key => {
+          if (info[key] === 'N/A' || info[key] === 'N/A"' || info[key] === '"N/A"') {
+            info[key] = '';
+          }
+          // Remove quotes from size
+          if (key === 'size' && info[key].includes('"')) {
+            info[key] = info[key].replace(/"/g, '');
+          }
+        });
+
+        return info;
+      }
+    }
+
+    console.log('❌ Not found in Excel database');
+    return null;
+
+  } catch (error) {
+    console.error('❌ Error reading Excel:', error);
+    return null;
+  }
+}
+
+/**
+ * TIER 2: Load product info from cached JSON files
+ */
+async function getFromCachedFiles(modelCode: string): Promise<ProductInfo | null> {
+  try {
+    const cacheDir = path.join(process.cwd(), 'product-cache/monitor/dell');
+
+    if (!existsSync(cacheDir)) {
+      console.log('⚠️ Cache directory not found');
+      return null;
+    }
+
+    console.log('📁 TIER 2: Checking cached files for model:', modelCode);
+
+    // Try to find a matching cache file
+    const modelLower = modelCode.toLowerCase();
+
+    // List all JSON files in cache
+    const fs = require('fs');
+    const files = fs.readdirSync(cacheDir).filter((f: string) => f.endsWith('.json'));
+
+    for (const file of files) {
+      const fileModel = file.replace('.json', '').toLowerCase();
+
+      if (fileModel === modelLower || fileModel.includes(modelLower) || modelLower.includes(fileModel)) {
+        const filePath = path.join(cacheDir, file);
+        const content = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+
+        console.log('✅ Found in cache:', file);
+
+        // Extract relevant info from cached data
+        const info: ProductInfo = {
+          model: modelCode,
+          briefName: content.briefName || content.productName || '',
+          size: content.size || content.screenSize || '',
+          resolution: content.resolution || '',
+          refreshRate: content.refreshRate || content.refresh_rate || '',
+          responseTime: content.responseTime || content.response_time || '',
+          ports: content.ports || content.connectivity || '',
+          warranty: content.warranty || '3 Years'
+        };
+
+        return info;
+      }
+    }
+
+    console.log('❌ Not found in cached files');
+    return null;
+
+  } catch (error) {
+    console.error('❌ Error reading cache:', error);
+    return null;
+  }
 }
 
 /**
@@ -25,7 +155,7 @@ async function searchOfficialWebsite(productName: string): Promise<string | null
   }
 
   try {
-    console.log('🔍 Searching for official website:', productName);
+    console.log('🔍 TIER 3: Searching for official website:', productName);
 
     const searchQuery = `${productName} official site specifications`;
     const url = `https://serpapi.com/search.json?engine=google&q=${encodeURIComponent(searchQuery)}&api_key=${SERPAPI_KEY}`;
@@ -166,7 +296,7 @@ async function fetchWebsiteContent(url: string): Promise<string> {
 /**
  * Extract product information using AI
  */
-async function extractProductInfo(productName: string, pageContent: string): Promise<any> {
+async function extractProductInfo(productName: string, pageContent: string): Promise<ProductInfo> {
   try {
     console.log('🤖 Using AI to extract product info');
 
@@ -209,7 +339,7 @@ IMPORTANT: Return empty string "", NOT "empty", if information is not found.`;
     let cleanedText = text.trim();
     cleanedText = cleanedText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
 
-    let productInfo: any;
+    let productInfo: ProductInfo;
     try {
       productInfo = JSON.parse(cleanedText);
 
@@ -279,20 +409,50 @@ export async function POST(request: NextRequest) {
 
     console.log('🚀 Starting smart product extraction for:', productName);
 
-    // Step 1: Search for official website
-    const officialUrl = await searchOfficialWebsite(productName);
+    // Extract model code from product name
+    const modelMatch = productName.match(/([A-Z]{1,5}\d{2,5}[A-Z]{0,2})/i);
+    const modelCode = modelMatch ? modelMatch[1] : productName;
 
-    let pageContent = '';
-    let source = 'basic extraction';
+    let productInfo: ProductInfo | null = null;
+    let source = '';
+    let officialUrl = '';
 
-    if (officialUrl) {
-      // Step 2: Fetch website content
-      pageContent = await fetchWebsiteContent(officialUrl);
-      source = `official website: ${officialUrl}`;
+    // TIER 1: Try Excel database first
+    productInfo = await getFromExcel(modelCode);
+    if (productInfo) {
+      source = 'Excel Database (74 Dell monitors)';
+      return NextResponse.json({
+        success: true,
+        source: source,
+        productInfo
+      });
     }
 
-    // Step 3: Extract product info using AI
-    const productInfo = await extractProductInfo(productName, pageContent);
+    // TIER 2: Try cached JSON files
+    productInfo = await getFromCachedFiles(modelCode);
+    if (productInfo) {
+      source = 'Cached JSON files';
+      return NextResponse.json({
+        success: true,
+        source: source,
+        productInfo
+      });
+    }
+
+    // TIER 3: Web scraping as last resort
+    console.log('🌐 TIER 3: Falling back to web scraping');
+    officialUrl = await searchOfficialWebsite(productName);
+
+    let pageContent = '';
+
+    if (officialUrl) {
+      pageContent = await fetchWebsiteContent(officialUrl);
+      source = `Web scraping: ${officialUrl}`;
+    } else {
+      source = 'AI extraction (no website found)';
+    }
+
+    productInfo = await extractProductInfo(productName, pageContent);
 
     return NextResponse.json({
       success: true,

@@ -603,53 +603,80 @@ export async function drawProductInfoOverlay(
   // Get custom text overlay settings if available
   const customSettings = config.textOverlaySettings || {};
 
-  // Draw model number at specified position
+  // Draw model number at specified position with auto-sizing and centering
   if (productInfo.model) {
     ctx.save();
 
-    // Model text configuration - use custom settings if available
     const modelText = productInfo.model;
+    // Use custom settings if available, otherwise use defaults with range-based auto-sizing
     const modelSettings = customSettings.model || {};
-    const modelX = modelSettings.x || 750;
-    const modelY = modelSettings.y || 185;
-    const modelFontSize = modelSettings.fontSize || 110;
-    const modelAlign = modelSettings.align || 'left';
-    const modelMaxWidth = modelSettings.maxWidth || 1000;
+    const xMin = modelSettings.xMin !== undefined ? modelSettings.xMin : 40;
+    const xMax = modelSettings.xMax !== undefined ? modelSettings.xMax : 1000;
+    const yMin = modelSettings.yMin !== undefined ? modelSettings.yMin : 120;
+    const yMax = modelSettings.yMax !== undefined ? modelSettings.yMax : 200;
+    const modelColor = '#000000'; // Black color
+    const modelAlign = modelSettings.align || 'center';
 
-    console.log(`✏️ Drawing model text "${modelText}" at X:${modelX}, Y:${modelY} with alignment: ${modelAlign}`);
+    const modelWidth = xMax - xMin;
+    const modelHeight = yMax - yMin;
 
-    // Use UPHEAVTT font (local font), fallback to Orbitron and sci-fi fonts
-    const modelFont = `${modelFontSize}px "UPHEAVTT", "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif`;
-    ctx.font = modelFont;
+    console.log(`✏️ Drawing model text "${modelText}" in range X:${xMin}-${xMax}, Y:${yMin}-${yMax} (${modelWidth}x${modelHeight}px) with alignment: ${modelAlign}`);
 
-    // Calculate draw position based on alignment relative to X position and max width
-    let drawX = modelX;
-    if (modelAlign === 'center') {
-      // Center: Text is centered in range [X, X + maxWidth]
-      ctx.textAlign = 'center';
-      drawX = modelX + modelMaxWidth / 2;
-    } else if (modelAlign === 'right') {
-      // Right: Text ends at X + maxWidth
-      ctx.textAlign = 'right';
-      drawX = modelX + modelMaxWidth;
-    } else {
-      // Left: Text starts at X
-      ctx.textAlign = 'left';
+    // Auto-calculate optimal font size to fit within the area
+    const fontFamily = '"UPHEAVTT", "Orbitron", "Sci-Fi", "Squared Techno", "Techno Square", "Arial Black", sans-serif';
+    let minSize = 10;
+    let maxSize = 200;
+    let bestFontSize = minSize;
+
+    // Binary search for optimal font size
+    while (minSize <= maxSize) {
+      const midSize = Math.floor((minSize + maxSize) / 2);
+      ctx.font = `900 ${midSize}px ${fontFamily}`;
+
+      // Measure text
+      const metrics = ctx.measureText(modelText);
+      const textWidth = metrics.width;
+
+      // Check if fits within width
+      if (textWidth <= modelWidth && midSize <= modelHeight) {
+        bestFontSize = midSize;
+        minSize = midSize + 1; // Try larger
+      } else {
+        maxSize = midSize - 1; // Too big, try smaller
+      }
     }
 
+    console.log(`🎯 Auto-calculated model font: ${bestFontSize}px for "${modelText}" within ${modelWidth}x${modelHeight}px`);
+
+    // Draw centered in the range
+    ctx.font = `900 ${bestFontSize}px ${fontFamily}`;
     ctx.textBaseline = 'top';
+
+    // Calculate center position
+    let drawX = xMin + modelWidth / 2;
+    const drawY = yMin + (modelHeight - bestFontSize) / 2; // Vertically center
+
+    if (modelAlign === 'center') {
+      ctx.textAlign = 'center';
+    } else if (modelAlign === 'right') {
+      ctx.textAlign = 'right';
+      drawX = xMax;
+    } else {
+      ctx.textAlign = 'left';
+      drawX = xMin;
+    }
 
     // White outline (thick)
     ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
     ctx.lineWidth = 8;
-    ctx.strokeText(modelText, drawX, modelY);
+    ctx.strokeText(modelText, drawX, drawY);
 
     // Black text
-    ctx.fillStyle = '#000000';
-    ctx.fillText(modelText, drawX, modelY);
+    ctx.fillStyle = modelColor;
+    ctx.fillText(modelText, drawX, drawY);
 
     ctx.restore();
-    console.log(`✅ Model text "${modelText}" drawn at X:${drawX}, Y:${modelY} with font "UPHEAVTT" size ${modelFontSize} - Color: Black - Alignment: ${modelAlign}`);
+    console.log(`✅ Model text "${modelText}" drawn centered in range X:${xMin}-${xMax}, Y:${yMin}-${yMax} with font "UPHEAVTT" size ${bestFontSize}px - Color: Black - Alignment: ${modelAlign}`);
   } else {
     console.log('⚠️ No model found in productInfo:', productInfo);
   }
@@ -788,7 +815,7 @@ export async function drawProductInfoOverlay(
   if (productInfo.size) {
     ctx.save();
 
-    const sizeText = productInfo.size;
+    const sizeText = `${productInfo.size} Inch`;
     const sizeSettings = customSettings.size || {};
     const sizeX = sizeSettings.x || 137; // Use position from settings
     const sizeY = sizeSettings.y || 294; // Use position from settings
@@ -1084,6 +1111,181 @@ export async function drawProductInfoOverlay(
 }
 
 /**
+ * Draw port icons overlay based on compatible ports mentioned in product info
+ * Icons are loaded from /ports folder and positioned starting at X:15, Y:850
+ */
+export async function drawPortIconsOverlay(
+  ctx: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement,
+  productInfo: any
+): Promise<void> {
+  if (!productInfo || !productInfo.ports) {
+    console.log('⚠️ No port information available, skipping port icons');
+    return;
+  }
+
+  const portsText = productInfo.ports.toLowerCase();
+  console.log('🔍 Checking for ports in:', productInfo.ports);
+
+  // Define port configurations
+  const portConfigs = [
+    { name: 'HDMI', iconFile: 'HDMI.png', keywords: ['hdmi'] },
+    { name: 'DisplayPort', iconFile: 'DisplayPort.png', keywords: ['displayport', 'dp'] },
+    { name: 'VGA', iconFile: 'VGA.png', keywords: ['vga'] }
+  ];
+
+  // Filter ports that are mentioned
+  const mentionedPorts = portConfigs.filter(port =>
+    port.keywords.some(keyword => portsText.includes(keyword))
+  );
+
+  if (mentionedPorts.length === 0) {
+    console.log('⚠️ No recognized ports found in product info');
+    return;
+  }
+
+  console.log(`✅ Found ${mentionedPorts.length} port(s) to display:`, mentionedPorts.map(p => p.name));
+
+  // Port icon settings - centered within X:15 to X:640 (625px width)
+  const xMin = 15;
+  const xMax = 640;
+  const startY = 905; // 5px lower (was 900)
+  const iconSize = 102; // Scale down by 10% (113 * 0.9 = 102)
+  const spacing = 10;  // Space between icons
+
+  // Calculate total width needed for all icons
+  const totalIconsWidth = (mentionedPorts.length * iconSize) + ((mentionedPorts.length - 1) * spacing);
+
+  // Calculate starting X position to center icons within the range
+  const availableWidth = xMax - xMin;
+  const startX = xMin + (availableWidth - totalIconsWidth) / 2;
+
+  console.log(`📐 Port icons layout: total width=${totalIconsWidth}px, available=${availableWidth}px, start X=${startX.toFixed(0)}`);
+
+  // Load and draw each port icon
+  for (let i = 0; i < mentionedPorts.length; i++) {
+    const port = mentionedPorts[i];
+    const iconPath = `/ports/${port.iconFile}`;
+
+    try {
+      // Load port icon
+      const iconImg = await loadImage(iconPath);
+      const iconX = startX + (i * (iconSize + spacing));
+      const iconY = startY;
+
+      // Calculate proportional scaling to maintain aspect ratio
+      const aspectRatio = iconImg.width / iconImg.height;
+      let drawWidth = iconSize;
+      let drawHeight = iconSize;
+
+      // Scale based on aspect ratio (fit within iconSize x iconSize)
+      if (aspectRatio > 1) {
+        // Landscape: width is the limiting factor
+        drawWidth = iconSize;
+        drawHeight = iconSize / aspectRatio;
+      } else {
+        // Portrait or square: height is the limiting factor
+        drawHeight = iconSize;
+        drawWidth = iconSize * aspectRatio;
+      }
+
+      // Draw icon with slight shadow for better visibility
+      ctx.save();
+
+      // Shadow
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+      ctx.shadowBlur = 5;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+
+      // Draw icon with proportional scaling (no distortion)
+      ctx.drawImage(iconImg, iconX, iconY, drawWidth, drawHeight);
+
+      ctx.restore();
+
+      console.log(`✅ Drew ${port.name} icon at X:${iconX}, Y:${iconY} (proportional: ${drawWidth.toFixed(0)}x${drawHeight.toFixed(0)})`);
+    } catch (error) {
+      console.error(`❌ Failed to load ${port.name} icon from ${iconPath}:`, error);
+    }
+  }
+
+  console.log('✅ Port icons overlay complete');
+}
+
+/**
+ * Draw brand logo overlay based on brand name from product info
+ * Logos are loaded from /logo folder and positioned at specified coordinates
+ */
+export async function drawBrandLogoOverlay(
+  ctx: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement,
+  productInfo: any
+): Promise<void> {
+  if (!productInfo || !productInfo.brand) {
+    console.log('⚠️ No brand information available, skipping brand logo');
+    return;
+  }
+
+  const brandName = productInfo.brand.toLowerCase().trim();
+  console.log('🔍 Checking for brand logo:', brandName);
+
+  // Define brand logo configurations
+  const brandConfigs = [
+    { name: 'Dell', logoFile: 'Dell.png', keywords: ['dell'] },
+    { name: 'HP', logoFile: 'HP.png', keywords: ['hp', 'hewlett-packard', 'hewlett packard'] }
+  ];
+
+  // Find matching brand
+  const matchedBrand = brandConfigs.find(brand =>
+    brand.keywords.some(keyword => brandName.includes(keyword))
+  );
+
+  if (!matchedBrand) {
+    console.log(`⚠️ No logo found for brand: ${brandName}`);
+    return;
+  }
+
+  console.log(`✅ Found brand logo: ${matchedBrand.name}`);
+
+  // Logo settings
+  const logoPath = `/logo/${matchedBrand.logoFile}`;
+  const logoX = 918; // 50px more to the right (was 868)
+  const logoY = 1000;
+  const logoWidth = 195; // Scale up by 30% (150 * 1.3 = 195)
+
+  try {
+    // Load brand logo
+    const logoImg = await loadImage(logoPath);
+
+    // Calculate proportional scaling to maintain aspect ratio
+    const aspectRatio = logoImg.width / logoImg.height;
+    let drawWidth = logoWidth;
+    let drawHeight = logoWidth / aspectRatio;
+
+    // Draw logo with subtle shadow for better visibility
+    ctx.save();
+
+    // Shadow
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+
+    // Draw logo centered at the specified position
+    const centerX = logoX + drawWidth / 2;
+    ctx.drawImage(logoImg, logoX, logoY, drawWidth, drawHeight);
+
+    ctx.restore();
+
+    console.log(`✅ Drew ${matchedBrand.name} logo at X:${logoX}, Y:${logoY} (proportional: ${drawWidth.toFixed(0)}x${drawHeight.toFixed(0)})`);
+  } catch (error) {
+    console.error(`❌ Failed to load ${matchedBrand.name} logo from ${logoPath}:`, error);
+  }
+
+  console.log('✅ Brand logo overlay complete');
+}
+
+/**
  * Composite product into frame with specified configuration
  * Scales product to fill the product area in the frame
  * For 'original' config, just returns the product on transparent background
@@ -1291,6 +1493,16 @@ export async function compositeProductIntoFrame(
     console.log('📝 Adding product info overlay...');
     await drawProductInfoOverlay(ctx, canvas, config.productInfo, config);
     console.log('✅ Product info overlay applied');
+
+    // 6.5. Draw port icons overlay
+    console.log('🔌 Adding port icons overlay...');
+    await drawPortIconsOverlay(ctx, canvas, config.productInfo);
+    console.log('✅ Port icons overlay applied');
+
+    // 6.6. Draw brand logo overlay
+    console.log('🏢 Adding brand logo overlay...');
+    await drawBrandLogoOverlay(ctx, canvas, config.productInfo);
+    console.log('✅ Brand logo overlay applied');
   }
 
   // 7. Apply lighting effects if configured

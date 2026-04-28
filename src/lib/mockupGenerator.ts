@@ -13,7 +13,7 @@ export type ProductImages = {
  * Exported so UI components can use the same defaults
  */
 export const DEFAULT_TEXT_OVERLAY_SETTINGS = {
-  model: { x: 750, y: 185, fontSize: 110, maxWidth: 1000, maxHeight: 150, align: 'left' },
+  model: { xMin: 720, xMax: 1292, yMin: 178, yMax: 302, align: 'center' }, // LOCKED
   brand: { x: 300, y: 300, fontSize: 70, maxWidth: 600, maxHeight: 80, align: 'left' },
   briefName: { xMin: 40, xMax: 640, yMin: 200, yMax: 330, align: 'left' }, // Auto font & spacing - LOCKED
   size: { x: 15, y: 377, fontSize: 65, maxWidth: 600, maxHeight: 120, lineHeight: 50, align: 'center' },

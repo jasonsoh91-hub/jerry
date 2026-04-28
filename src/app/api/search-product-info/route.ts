@@ -19,7 +19,18 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { query, model } = await request.json();
+    const body = await request.json();
+    console.log('📦 Received body:', body);
+
+    const { query, model } = body;
+
+    if (!query) {
+      console.log('❌ No query provided');
+      return NextResponse.json(
+        { error: 'Query is required' },
+        { status: 400 }
+      );
+    }
 
     // Better model extraction - prefer alphanumeric model codes over brand names
     let extractedModel = model;
@@ -151,99 +162,60 @@ export async function POST(request: NextRequest) {
     console.log('🔍 URL contains dell.com:', productUrl?.includes('dell.com'));
     console.log('🔍 URL contains techspecs:', productUrl?.includes('techspecs'));
 
-    // Step 3: Fetch the product page and extract information
+    // Step 3: Use Puppeteer-based extraction for JavaScript-rendered content
     if (productUrl) {
       try {
-        const pageResponse = await fetch(productUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          }
+        console.log('🚀 Using Puppeteer-based extraction for JavaScript-rendered content');
+
+        // Call the Puppeteer-based smart extraction
+        const puppeteerResponse = await fetch('http://localhost:3000/api/smart-extract-product-info-puppeteer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productName: query
+          })
         });
 
-        if (!pageResponse.ok) {
-          console.log('⚠️  Could not fetch product page, using fallback');
-          const fallbackInfo = generateFallbackInfo(searchData, query, productName);
-          const newFormat = convertToNewFormat(fallbackInfo, query, model);
-          return NextResponse.json(newFormat);
+        if (!puppeteerResponse.ok) {
+          throw new Error(`Puppeteer extraction failed with status: ${puppeteerResponse.status}`);
         }
 
-        const pageHtml = await pageResponse.text();
-        console.log('✅ Product page fetched, length:', pageHtml.length);
+        const puppeteerData = await puppeteerResponse.json();
 
-        // Check if we got HTML (not JSON error page)
-        if (!pageHtml || !pageHtml.includes('<')) {
-          console.log('⚠️  Product page is not HTML, using fallback');
-          const fallbackInfo = generateFallbackInfo(searchData, query, productName);
-          const newFormat = convertToNewFormat(fallbackInfo, query, model);
-          return NextResponse.json(newFormat);
-        }
+        if (puppeteerData.success && puppeteerData.productInfo) {
+          console.log('✅ Puppeteer extraction successful:', puppeteerData.productInfo);
 
-        // Extract product information using improved patterns
-        let productInfo;
-        try {
-          // Special handling for Dell techspecs pages
-          if (productUrl && productUrl.includes('dell.com')) {
-            console.log('🎯 Dell website detected, using Dell-specific extraction');
-            productInfo = extractDellTechSpecs(pageHtml, productName, query);
-
-            // If Dell extraction didn't get detailed specs (size, resolution, refresh rate, ports), use AI extraction as fallback
-            const hasCriticalSpecs = productInfo.technicalSpecs &&
-              productInfo.technicalSpecs.some((spec: string) =>
-                spec.includes('Screen Size:') || spec.includes('Resolution:') ||
-                spec.includes('Response Time:') || spec.includes('Ports:')
-              );
-
-            if (!hasCriticalSpecs) {
-              console.log('⚠️ Dell extraction missing critical specs (size, resolution, refresh rate, ports), trying AI extraction...');
-              const aiInfo = await extractWithAI(query, pageHtml);
-              if (aiInfo) {
-                console.log('✅ AI extraction successful, converting to Dell format');
-
-                // Convert AI format to Dell format and continue
-                productInfo = {
-                  productName: productInfo.productName,
-                  description: productInfo.description,
-                  features: [],
-                  specifications: [],
-                  technicalSpecs: [
-                    aiInfo.size ? `Screen Size: ${aiInfo.size}` : '',
-                    aiInfo.resolution ? `Resolution: ${aiInfo.resolution}` : '',
-                    aiInfo.responseTime ? `Response Time: ${aiInfo.responseTime}` : '',
-                    aiInfo.refreshRate ? `Refresh Rate: ${aiInfo.refreshRate}` : '',
-                    aiInfo.ports ? `Ports: ${aiInfo.ports}` : '',
-                    aiInfo.warranty ? `Warranty: ${aiInfo.warranty}` : ''
-                  ].filter(Boolean),
-                  inTheBox: undefined,
-                  dimensions: null,
-                  weight: null,
-                  brand: 'Dell',
-                  category: 'Computer Monitor',
-                  modelNumber: aiInfo.model || query.match(/([A-Z0-9]{4,})/i)?.[1] || '',
-                  warranty: aiInfo.warranty,
-                  priceRange: null
-                };
-              }
+          // Use the Puppeteer results directly - no additional processing needed
+          return NextResponse.json({
+            success: true,
+            productUrl: productUrl,
+            source: puppeteerData.source,
+            scrapedContentLength: puppeteerData.scrapedContentLength,
+            productInfo: {
+              model: puppeteerData.productInfo.model || extractedModel || '',
+              briefName: puppeteerData.productInfo.briefName || productName,
+              size: puppeteerData.productInfo.size || '',
+              resolution: puppeteerData.productInfo.resolution || '',
+              responseTime: puppeteerData.productInfo.responseTime || '',
+              refreshRate: puppeteerData.productInfo.refreshRate || '',
+              ports: puppeteerData.productInfo.ports || '',
+              warranty: puppeteerData.productInfo.warranty || ''
             }
-          } else {
-            console.log('📋 Using general extraction');
-            productInfo = extractProductInfo(pageHtml, productName, query);
-          }
-        } catch (extractError) {
-          console.log('⚠️  Could not extract structured info, using fallback:', extractError);
-          productInfo = generateFallbackInfo(searchData, query, productName);
+          });
+        } else {
+          console.log('⚠️ Puppeteer extraction failed, using fallback');
+          const fallbackInfo = generateFallbackInfo(searchData, query, productName);
+          const newFormat = convertToNewFormat(fallbackInfo, query, model);
+          return NextResponse.json(newFormat);
         }
 
-        const newFormat = convertToNewFormat(productInfo, query, extractedModel);
-        return NextResponse.json(newFormat);
+      } catch (puppeteerError) {
+        console.log('⚠️ Puppeteer extraction error:', puppeteerError);
 
-      } catch (error: any) {
-        console.log('⚠️  Could not fetch/parse product page:', error.message);
+        // Fallback to basic extraction
         const fallbackInfo = generateFallbackInfo(searchData, query, productName);
-        return NextResponse.json({
-          success: true,
-          productUrl,
-          ...fallbackInfo
-        });
+        const newFormat = convertToNewFormat(fallbackInfo, query, model);
+        return NextResponse.json(newFormat);
       }
     }
 
@@ -638,31 +610,31 @@ function extractSpecImproved(specs: string[], type: string): string {
 
 async function extractWithAI(query: string, pageContent?: string) {
   try {
-    console.log('🤖 Using AI extraction for:', query);
+    console.log('🤖 Using SMART Puppeteer AI extraction for:', query);
 
-    const response = await fetch('http://localhost:3000/api/extract-product-info', {
+    // Call the new Puppeteer-based smart extraction
+    const response = await fetch('http://localhost:3000/api/smart-extract-product-info-puppeteer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        productName: query,
-        pageContent: pageContent // Pass webpage content for better extraction
+        productName: query
       })
     });
 
     if (!response.ok) {
-      console.log('❌ AI extraction failed');
+      console.log('❌ Puppeteer AI extraction failed');
       return null;
     }
 
     const data = await response.json();
     if (data.success && data.productInfo) {
-      console.log('✅ AI extraction result:', data.productInfo);
+      console.log('✅ Puppeteer AI extraction result:', data.productInfo);
       return data.productInfo;
     }
 
     return null;
   } catch (error) {
-    console.log('❌ AI extraction error:', error);
+    console.log('❌ Puppeteer AI extraction error:', error);
     return null;
   }
 }
