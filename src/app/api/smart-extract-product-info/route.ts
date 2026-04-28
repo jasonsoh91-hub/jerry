@@ -67,13 +67,13 @@ async function getFromExcel(modelCode: string): Promise<ProductInfo | null> {
         };
 
         // Clean up "N/A" values
-        Object.keys(info).forEach(key => {
-          if (info[key] === 'N/A' || info[key] === 'N/A"' || info[key] === '"N/A"') {
-            info[key] = '';
+        Object.entries(info).forEach(([key, value]) => {
+          if (value === 'N/A' || value === 'N/A"' || value === '"N/A"') {
+            (info as any)[key] = '';
           }
           // Remove quotes from size
-          if (key === 'size' && info[key].includes('"')) {
-            info[key] = info[key].replace(/"/g, '');
+          if (key === 'size' && typeof value === 'string' && value.includes('"')) {
+            (info as any)[key] = value.replace(/"/g, '');
           }
         });
 
@@ -344,9 +344,9 @@ IMPORTANT: Return empty string "", NOT "empty", if information is not found.`;
       productInfo = JSON.parse(cleanedText);
 
       // Clean up any "empty" strings
-      Object.keys(productInfo).forEach(key => {
-        if (productInfo[key] === 'empty' || productInfo[key] === 'Empty') {
-          productInfo[key] = '';
+      Object.entries(productInfo).forEach(([key, value]) => {
+        if (value === 'empty' || value === 'Empty') {
+          (productInfo as any)[key] = '';
         }
       });
 
@@ -441,7 +441,10 @@ export async function POST(request: NextRequest) {
 
     // TIER 3: Web scraping as last resort
     console.log('🌐 TIER 3: Falling back to web scraping');
-    officialUrl = await searchOfficialWebsite(productName);
+    const foundUrl = await searchOfficialWebsite(productName);
+    if (foundUrl) {
+      officialUrl = foundUrl;
+    }
 
     let pageContent = '';
 

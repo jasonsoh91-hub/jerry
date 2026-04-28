@@ -715,7 +715,7 @@ Return ONLY the JSON object, nothing else.`;
       console.log('✅ Parsed specs from HTML:', specs);
 
       return {
-        model: extractedModel || specs.model,
+        model: extractedModel || (specs as any).model,
         briefName: briefName,
         ...specs
       };
