@@ -71,15 +71,14 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
       const extractedModel = extractModel(productName);
       const extractedBrand = extractBrand(productName, extractedModel);
       console.log('🔍 Starting web search for:', productName, 'Model:', extractedModel, 'Brand:', extractedBrand);
-      console.log('📡 Calling API: /api/search-product-info');
+      console.log('📡 Calling API: /api/smart-extract-product-info-puppeteer');
 
-      // Call the product search API (web crawling)
-      const response = await fetch('/api/search-product-info', {
+      // Call the product search API (uses Dell database + web scraping)
+      const response = await fetch('/api/smart-extract-product-info-puppeteer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: productName,
-          model: extractedModel
+          productName: productName
         })
       });
 
