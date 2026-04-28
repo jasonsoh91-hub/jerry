@@ -1,0 +1,49 @@
+/Users/jasonsoh/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+🚀 Dell Monitors Scraper - Fresh Start
+======================================================================
+
+📄 Loading: https://www.dell.com/en-my/shop/monitors-monitor-accessories/sac/monitors/all-monitors
+✅ Cookie dialog dismissed
+✅ Extracted 12 products from listing page
+
+📋 Found 12 products
+📋 Scraping detailed specs...
+
+[1/12] 210-bqnp   Scraping: 210-bqnp
+ ✅      N/A |     1920 x 1200 |    7.0ms
+[2/12] 210-bjjm   Scraping: 210-bjjm
+ ✅      N/A |     1920 x 1200 |    5.0ms
+[3/12] 210-bvgm   Scraping: 210-bvgm
+ ✅      N/A |             N/A |    1.0ms
+[4/12] 210-bvpg   Scraping: 210-bvpg
+ ✅      N/A |             N/A |    5.0ms
+[5/12] 210-bvnl   Scraping: 210-bvnl
+ ✅      N/A |             N/A |    5.0ms
+[6/12] 210-bvpd   Scraping: 210-bvpd
+ ✅      N/A |             N/A |    5.0ms
+[7/12] 210-bvnv   Scraping: 210-bvnv
+ ✅      N/A |             N/A |    5.0ms
+[8/12] 210-bvns   Scraping: 210-bvns
+ ✅      N/A |             N/A |    5.0ms
+[9/12] 210-bvnx   Scraping: 210-bvnx
+ ✅      N/A |             N/A |    5.0ms
+[10/12] 210-bvhp   Scraping: 210-bvhp
+ ✅      N/A |             N/A |      N/A
+[11/12] 210-bmml   Scraping: 210-bmml
+ ✅      N/A |     1920 x 1200 |    5.0ms
+[12/12] 210-bqtg   Scraping: 210-bqtg
+ ✅      N/A |             N/A |    5.0ms
+
+======================================================================
+💾 Saving results...
+✅ CSV saved: Dell_Monitors_Full_List.csv
+✅ Excel saved: Dell_Monitors_Full_List.xlsx
+
+📊 Statistics:
+Total Products: 12
+Response Time: 12/12
+Size: 12/12
+Resolution: 12/12
+
+✅ Scraping Complete!

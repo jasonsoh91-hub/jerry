@@ -46,3 +46,4 @@ product-cache/
 
 # Google Sheets credentials (keep private!)
 google-credentials.json
+.claude/settings.local.json
