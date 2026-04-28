@@ -325,7 +325,7 @@ async function fetchWebsiteContentWithPuppeteer(url: string): Promise<string> {
     // Extract both text content and structured spec table data
     const scrapedData = await page.evaluate(() => {
       // Extract text content
-      const clone = document.body.cloneNode(true);
+      const clone = document.body.cloneNode(true) as Element;
       const unwanted = clone.querySelectorAll('script, style, nav, footer, header, iframe, noscript');
       unwanted.forEach(el => el.remove());
 
