@@ -93,9 +93,9 @@ async function getFromExcel(modelCode: string): Promise<ProductInfo | null> {
         };
 
         // Clean up "N/A" values
-        Object.keys(info).forEach(key => {
+        (Object.keys(info) as Array<keyof ProductInfo>).forEach(key => {
           if (info[key] === 'N/A' || info[key] === 'N/A"' || info[key] === '"N/A"') {
-            info[key] = '';
+            info[key] = '' as any;
           }
         });
 
