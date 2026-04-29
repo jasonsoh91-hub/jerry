@@ -7,7 +7,7 @@
     "Size": "14 Inch",
     "Resolution": "1920 x 1200 WUXGA",
     "Response Time": "7.0ms",
-    "Refresh Rate": "",
+    "Refresh Rate": "60Hz",
     "Compatible Ports": "2 USB-C, 1 DisplayPort",
     "Warranty": "3 Years"
   },
@@ -19,7 +19,7 @@
     "Size": "24 Inch",
     "Resolution": "1920 x 1200 WUXGA",
     "Response Time": "5.0ms",
-    "Refresh Rate": "",
+    "Refresh Rate": "60Hz",
     "Compatible Ports": "1 HDMI, 1 DisplayPort, 2 USB-C, Ethernet",
     "Warranty": "3 Years"
   },
@@ -55,7 +55,7 @@
     "Size": "24 Inch",
     "Resolution": "1920 x 1200",
     "Response Time": "5.0ms",
-    "Refresh Rate": "",
+    "Refresh Rate": "120Hz",
     "Compatible Ports": "1 HDMI, 2 DisplayPort (1 in, 1 out), USB-C",
     "Warranty": "3 Years"
   },
@@ -79,7 +79,7 @@
     "Size": "27 Inch",
     "Resolution": "1920 x 1200",
     "Response Time": "5.0ms",
-    "Refresh Rate": "",
+    "Refresh Rate": "100Hz",
     "Compatible Ports": "1 HDMI, 2 DisplayPort (1 in, 1 out), USB-C",
     "Warranty": "3 Years"
   },
@@ -114,7 +114,7 @@
     "Brief Naming": "Dell UltraSharp Series LED Monitor",
     "Size": "32 Inch",
     "Resolution": "3840 x 2160 4K UHD",
-    "Response Time": "",
+    "Response Time": "0.1ms",
     "Refresh Rate": "120Hz",
     "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
     "Warranty": "3 Years"
@@ -150,7 +150,7 @@
     "Brief Naming": "Dell Alienware Series LED Monitor",
     "Size": "32 Inch",
     "Resolution": "2560 x 1440 QHD",
-    "Response Time": "",
+    "Response Time": "0.1ms",
     "Refresh Rate": "240Hz",
     "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt",
     "Warranty": "3 Years"
@@ -162,7 +162,7 @@
     "Brief Naming": "Dell UltraSharp Series LED Monitor",
     "Size": "27 Inch",
     "Resolution": "3840 x 2160 4K UHD",
-    "Response Time": "",
+    "Response Time": "8.0ms",
     "Refresh Rate": "120Hz",
     "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
     "Warranty": "3 Years"
@@ -174,7 +174,7 @@
     "Brief Naming": "Dell Alienware Series LED Monitor",
     "Size": "27 Inch",
     "Resolution": "2560 x 1440 QHD",
-    "Response Time": "",
+    "Response Time": "0.1ms",
     "Refresh Rate": "280Hz",
     "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt",
     "Warranty": "3 Years"
@@ -222,7 +222,7 @@
     "Brief Naming": "Dell Alienware Series LED Monitor",
     "Size": "27 Inch",
     "Resolution": "2560 x 1440 QHD",
-    "Response Time": "",
+    "Response Time": "0.1ms",
     "Refresh Rate": "360Hz",
     "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt",
     "Warranty": "3 Years"
@@ -246,7 +246,7 @@
     "Brief Naming": "DELL S Series LED Monitor",
     "Size": "32 Inch",
     "Resolution": "3840 x 2160 4K UHD",
-    "Response Time": "",
+    "Response Time": "5.0ms",
     "Refresh Rate": "120Hz",
     "Compatible Ports": "1 HDMI, 1 DisplayPort, 1 USB-C",
     "Warranty": "3 Years"
@@ -282,7 +282,7 @@
     "Brief Naming": "Dell Alienware Series LED Monitor",
     "Size": "34 Inch",
     "Resolution": "2560 x 1440 QHD",
-    "Response Time": "",
+    "Response Time": "1.0ms",
     "Refresh Rate": "240Hz",
     "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt",
     "Warranty": "3 Years"
@@ -354,7 +354,7 @@
     "Brief Naming": "Dell UltraSharp Series LED Monitor",
     "Size": "32 Inch",
     "Resolution": "3840 x 2160 4K UHD",
-    "Response Time": "",
+    "Response Time": "8.0ms",
     "Refresh Rate": "120Hz",
     "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
     "Warranty": "3 Years"
@@ -366,7 +366,7 @@
     "Brief Naming": "Dell Alienware Series LED Monitor",
     "Size": "27 Inch",
     "Resolution": "2560 x 1440 QHD",
-    "Response Time": "",
+    "Response Time": "0.1ms",
     "Refresh Rate": "240Hz",
     "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt",
     "Warranty": "3 Years"
@@ -427,7 +427,7 @@
     "Size": "34 Inch",
     "Resolution": "3440 x 1440 UWQHD",
     "Response Time": "5.0ms",
-    "Refresh Rate": "",
+    "Refresh Rate": "100Hz",
     "Compatible Ports": "1 HDMI, 1 DisplayPort, 1 USB-C",
     "Warranty": "3 Years"
   },
@@ -535,7 +535,7 @@
     "Size": "38 Inch",
     "Resolution": "3840 x 1600",
     "Response Time": "5.0ms",
-    "Refresh Rate": "",
+    "Refresh Rate": "60Hz",
     "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
     "Warranty": "3 Years"
   },
@@ -583,7 +583,7 @@
     "Size": "34 Inch",
     "Resolution": "3440 x 1440 UWQHD",
     "Response Time": "5.0ms",
-    "Refresh Rate": "",
+    "Refresh Rate": "60Hz",
     "Compatible Ports": "1 HDMI, 1 USB-C",
     "Warranty": "3 Years"
   },
@@ -727,7 +727,7 @@
     "Size": "43 Inch",
     "Resolution": "3840 x 2160 4K UHD",
     "Response Time": "5.0ms",
-    "Refresh Rate": "",
+    "Refresh Rate": "60Hz",
     "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
     "Warranty": "3 Years"
   },
@@ -762,8 +762,8 @@
     "Brief Naming": "Dell UltraSharp Series LED Monitor",
     "Size": "49 Inch",
     "Resolution": "5120 x 1440",
-    "Response Time": "",
-    "Refresh Rate": "",
+    "Response Time": "8.0ms",
+    "Refresh Rate": "60Hz",
     "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt",
     "Warranty": "3 Years"
   },
@@ -786,7 +786,7 @@
     "Brief Naming": "Dell Alienware Series LED Monitor",
     "Size": "27 Inch",
     "Resolution": "2560 x 1440 QHD",
-    "Response Time": "",
+    "Response Time": "1.0ms",
     "Refresh Rate": "240Hz",
     "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt",
     "Warranty": "3 Years"
@@ -798,7 +798,7 @@
     "Brief Naming": "Dell UltraSharp Series LED Monitor",
     "Size": "52 Inch",
     "Resolution": "5120 x 1440",
-    "Response Time": "",
+    "Response Time": "5.0ms",
     "Refresh Rate": "120Hz",
     "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
     "Warranty": "3 Years"
@@ -882,8 +882,8 @@
     "Brief Naming": "Dell UltraSharp Series LED Monitor",
     "Size": "32 Inch",
     "Resolution": "3840 x 2160 4K UHD",
-    "Response Time": "",
-    "Refresh Rate": "",
+    "Response Time": "6.0ms",
+    "Refresh Rate": "60Hz",
     "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
     "Warranty": "3 Years"
   },
