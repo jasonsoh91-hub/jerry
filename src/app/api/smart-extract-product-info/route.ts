@@ -15,8 +15,19 @@ import path from 'path';
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 const SERPAPI_KEY = process.env.SERPAPI_KEY || '';
 
-// Excel file path
-const EXCEL_PATH = path.join(process.cwd(), 'dell_monitors_transformed.xlsx');
+// Detect brand from product name and return appropriate Excel path
+function getExcelPath(productName: string): string {
+  const upperName = productName.toUpperCase();
+
+  if (upperName.includes('HP') || upperName.includes('HEWLETT PACKARD')) {
+    return path.join(process.cwd(), 'hp_monitors.xlsx');
+  } else if (upperName.includes('DELL')) {
+    return path.join(process.cwd(), 'dell_monitors_transformed.xlsx');
+  } else {
+    // Default to Dell for backwards compatibility
+    return path.join(process.cwd(), 'dell_monitors_transformed.xlsx');
+  }
+}
 
 interface ProductInfo {
   model: string;
@@ -32,8 +43,10 @@ interface ProductInfo {
 /**
  * TIER 1: Load product info from Excel database
  */
-async function getFromExcel(modelCode: string): Promise<ProductInfo | null> {
+async function getFromExcel(modelCode: string, productName: string): Promise<ProductInfo | null> {
   try {
+    const EXCEL_PATH = getExcelPath(productName);
+
     if (!existsSync(EXCEL_PATH)) {
       console.log('⚠️ Excel file not found:', EXCEL_PATH);
       return null;
@@ -93,9 +106,11 @@ async function getFromExcel(modelCode: string): Promise<ProductInfo | null> {
 /**
  * TIER 2: Load product info from cached JSON files
  */
-async function getFromCachedFiles(modelCode: string): Promise<ProductInfo | null> {
+async function getFromCachedFiles(modelCode: string, productName: string): Promise<ProductInfo | null> {
   try {
-    const cacheDir = path.join(process.cwd(), 'product-cache/monitor/dell');
+    // Detect brand and check appropriate cache directory
+    const brand = productName.toUpperCase().includes('HP') ? 'hp' : 'dell';
+    const cacheDir = path.join(process.cwd(), `product-cache/monitor/${brand}`);
 
     if (!existsSync(cacheDir)) {
       console.log('⚠️ Cache directory not found');
@@ -409,18 +424,37 @@ export async function POST(request: NextRequest) {
 
     console.log('🚀 Starting smart product extraction for:', productName);
 
-    // Extract model code from product name
-    const modelMatch = productName.match(/([A-Z]{1,5}\d{2,5}[A-Z]{0,2})/i);
-    const modelCode = modelMatch ? modelMatch[1] : productName;
+    // Extract model code from product name (support both Dell and HP patterns)
+    let modelCode = '';
+
+    // Try HP pattern first (starts with numbers like 322pe, 324pv)
+    const hpModelMatch = productName.match(/\b(\d{3,5}[A-Za-z]{1,3})\b/);
+    if (hpModelMatch) {
+      modelCode = hpModelMatch[1].toLowerCase(); // HP models are lowercase in database
+    }
+
+    // Try Dell pattern (starts with letters like U2424H, E2225HM)
+    if (!modelCode) {
+      const dellModelMatch = productName.match(/([A-Z]{1,5}\d{2,5}[A-Z]{0,2})/i);
+      if (dellModelMatch) {
+        modelCode = dellModelMatch[1].toUpperCase();
+      }
+    }
+
+    // Fallback to product name if no pattern matches
+    if (!modelCode) {
+      modelCode = productName;
+    }
 
     let productInfo: ProductInfo | null = null;
     let source = '';
     let officialUrl = '';
 
     // TIER 1: Try Excel database first
-    productInfo = await getFromExcel(modelCode);
+    productInfo = await getFromExcel(modelCode, productName);
     if (productInfo) {
-      source = 'Excel Database (74 Dell monitors)';
+      const brand = productName.toUpperCase().includes('HP') ? 'HP' : 'Dell';
+      source = `Excel Database (${brand} monitors)`;
       return NextResponse.json({
         success: true,
         source: source,
@@ -429,7 +463,7 @@ export async function POST(request: NextRequest) {
     }
 
     // TIER 2: Try cached JSON files
-    productInfo = await getFromCachedFiles(modelCode);
+    productInfo = await getFromCachedFiles(modelCode, productName);
     if (productInfo) {
       source = 'Cached JSON files';
       return NextResponse.json({

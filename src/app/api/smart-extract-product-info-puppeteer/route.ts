@@ -20,8 +20,19 @@ import { existsSync } from 'fs';
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 const SERPAPI_KEY = process.env.SERPAPI_KEY || '';
 
-// JSON database path (converted from Excel)
-const JSON_DB_PATH = path.join(process.cwd(), 'public/dell_monitors.json');
+// Detect brand from product name and return appropriate JSON database path
+function getJsonDbPath(productName: string): string {
+  const upperName = productName.toUpperCase();
+
+  if (upperName.includes('HP') || upperName.includes('HEWLETT PACKARD')) {
+    return path.join(process.cwd(), 'public/hp_monitors.json');
+  } else if (upperName.includes('DELL')) {
+    return path.join(process.cwd(), 'public/dell_monitors.json');
+  } else {
+    // Default to Dell for backwards compatibility
+    return path.join(process.cwd(), 'public/dell_monitors.json');
+  }
+}
 
 interface ProductInfo {
   model: string;
@@ -37,8 +48,10 @@ interface ProductInfo {
 /**
  * TIER 1: Load product info from JSON database (converted from Excel)
  */
-async function getFromExcel(modelCode: string): Promise<ProductInfo | null> {
+async function getFromExcel(modelCode: string, productName: string): Promise<ProductInfo | null> {
   try {
+    const JSON_DB_PATH = getJsonDbPath(productName);
+
     if (!existsSync(JSON_DB_PATH)) {
       console.log('⚠️ JSON database file not found:', JSON_DB_PATH);
       return null;
@@ -50,11 +63,12 @@ async function getFromExcel(modelCode: string): Promise<ProductInfo | null> {
     const data = JSON.parse(fileContent);
 
     console.log('📊 JSON database loaded, total rows:', data.length);
+    console.log('📊 Database path:', JSON_DB_PATH);
 
     // Find matching product by model code
     for (const row of data as any) {
-      const rowModel = String(row['Model'] || '').toUpperCase().trim();
-      const searchModel = modelCode.toUpperCase().trim();
+      const rowModel = String(row['Model'] || '').trim();
+      const searchModel = modelCode.trim();
 
       // CRITICAL: Don't search if modelCode is empty to prevent false matches
       if (!searchModel) {
@@ -62,14 +76,18 @@ async function getFromExcel(modelCode: string): Promise<ProductInfo | null> {
         continue;
       }
 
+      // CRITICAL: Use case-insensitive matching to handle both Dell (UPPERCASE) and HP (lowercase) models
+      const rowModelUpper = rowModel.toUpperCase();
+      const searchModelUpper = searchModel.toUpperCase();
+
       // CRITICAL: Use strict matching to prevent false positives
       // Only match if:
-      // 1. Exact match: "E2225HM" === "E2225HM"
+      // 1. Exact match: "E2225HM" === "E2225HM" or "322pe" === "322pe"
       // 2. Search STARTS WITH database entry (searchModel startsWith rowModel)
       //    e.g., searching "U2424HE" can match "U2424H" (starts with U2424H)
       //    BUT searching "SE2425HM" must NOT match "E2425HM" (doesn't start with)
-      const isExactMatch = rowModel === searchModel;
-      const isSearchMoreSpecific = searchModel.startsWith(rowModel) && searchModel.length > rowModel.length;
+      const isExactMatch = rowModelUpper === searchModelUpper;
+      const isSearchMoreSpecific = searchModelUpper.startsWith(rowModelUpper) && searchModelUpper.length > rowModelUpper.length;
 
       if (isExactMatch || isSearchMoreSpecific) {
         console.log('✅ Found in JSON database:', rowModel);
@@ -119,6 +137,8 @@ async function addToDatabase(productInfo: ProductInfo, productName: string): Pro
   try {
     console.log('💾 Adding new product to database:', productInfo.model);
 
+    const JSON_DB_PATH = getJsonDbPath(productName);
+
     // Read current database
     let data = [];
     if (existsSync(JSON_DB_PATH)) {
@@ -133,10 +153,11 @@ async function addToDatabase(productInfo: ProductInfo, productName: string): Pro
     });
 
     // Create database row
+    const brand = productName.toUpperCase().includes('HP') ? 'HP' : 'DELL';
     const newRow: any = {
       'Full Product Name': productName,
       'Model': productInfo.model,
-      'Brand': 'DELL',
+      'Brand': brand,
       'Brief Naming': productInfo.briefName,
       'Size': productInfo.size.includes('"') ? productInfo.size : `"${productInfo.size}"`,
       'Resolution': productInfo.resolution,
@@ -168,9 +189,11 @@ async function addToDatabase(productInfo: ProductInfo, productName: string): Pro
 /**
  * TIER 2: Load product info from cached JSON files
  */
-async function getFromCachedFiles(modelCode: string): Promise<ProductInfo | null> {
+async function getFromCachedFiles(modelCode: string, productName: string): Promise<ProductInfo | null> {
   try {
-    const cacheDir = path.join(process.cwd(), 'product-cache/monitor/dell');
+    // Detect brand and check appropriate cache directory
+    const brand = productName.toUpperCase().includes('HP') ? 'hp' : 'dell';
+    const cacheDir = path.join(process.cwd(), `product-cache/monitor/${brand}`);
 
     if (!existsSync(cacheDir)) {
       console.log('⚠️ Cache directory not found');
@@ -952,17 +975,26 @@ export async function POST(request: NextRequest) {
 
     console.log('🚀 Starting SMART product extraction with Puppeteer for:', productName);
 
-    // Extract model code from product name (handles U2424H, E2225HM, P1425, AW2725D, etc.)
+    // Extract model code from product name (handles U2424H, E2225HM, P1425, AW2725D, HP 322pe, etc.)
     // Try multiple patterns to ensure we capture the model correctly
     let modelCode = '';
 
-    // Pattern 1: Standard Dell models (U2424H, E2225HM, SE2225HM)
-    const modelMatch1 = productName.match(/([A-Za-z]{1,2}\d{3,5}[A-Za-z]{0,2})\b/);
-    if (modelMatch1) {
-      modelCode = modelMatch1[1].toUpperCase();
+    // Pattern 1: HP models (start with numbers like 322pe, 324pv, 327ph)
+    const hpModelMatch = productName.match(/\b(\d{3,5}[A-Za-z]{1,3})\b/);
+    if (hpModelMatch) {
+      modelCode = hpModelMatch[1].toLowerCase(); // HP models are lowercase in database
+      console.log('🔍 Detected HP model pattern');
     }
 
-    // Pattern 2: Models with more letters (AW2725DF, SE2425HR)
+    // Pattern 2: Standard Dell models (U2424H, E2225HM, SE2225HM)
+    if (!modelCode) {
+      const modelMatch1 = productName.match(/([A-Za-z]{1,2}\d{3,5}[A-Za-z]{0,2})\b/);
+      if (modelMatch1) {
+        modelCode = modelMatch1[1].toUpperCase();
+      }
+    }
+
+    // Pattern 3: Models with more letters (AW2725DF, SE2425HR)
     if (!modelCode) {
       const modelMatch2 = productName.match(/([A-Za-z]{2,4}\d{3,5}[A-Za-z]{0,2})\b/);
       if (modelMatch2) {
@@ -970,7 +1002,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Pattern 3: Any alphanumeric code that looks like a model (fallback)
+    // Pattern 4: Any alphanumeric code that looks like a model (fallback)
     if (!modelCode) {
       const modelMatch3 = productName.match(/\b([A-Za-z]{1,4}\d{3,}[A-Za-z]{0,3})\b/);
       if (modelMatch3) {
@@ -983,18 +1015,19 @@ export async function POST(request: NextRequest) {
     // === NEW: 3-Tier Fallback System ===
 
     // TIER 1: Try Excel database first
-    const tier1Info = await getFromExcel(modelCode);
+    const tier1Info = await getFromExcel(modelCode, productName);
     if (tier1Info) {
       console.log('✅ TIER 1: Found in Excel database');
+      const brand = productName.toUpperCase().includes('HP') ? 'HP' : 'Dell';
       return NextResponse.json({
         success: true,
-        source: 'Excel Database (75 Dell monitors)',
+        source: `Excel Database (${brand} monitors)`,
         productInfo: tier1Info
       });
     }
 
     // TIER 2: Try cached JSON files
-    const tier2Info = await getFromCachedFiles(modelCode);
+    const tier2Info = await getFromCachedFiles(modelCode, productName);
     if (tier2Info) {
       console.log('✅ TIER 2: Found in cached JSON files');
       return NextResponse.json({

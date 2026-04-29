@@ -107,18 +107,25 @@
 
         <div class="test-section">
             <h3>Test Product Information Extraction</h3>
-            <p>Enter a Dell model number to test the 3-tier fallback system:</p>
+            <p>Enter a Dell or HP model number to test the 3-tier fallback system:</p>
 
             <div class="examples">
-                <strong>Quick Examples:</strong>
+                <strong>Dell Examples:</strong>
                 <button class="example-btn" onclick="testModel('SE2726D')">SE2726D</button>
                 <button class="example-btn" onclick="testModel('P2424HT')">P2424HT</button>
                 <button class="example-btn" onclick="testModel('AW3225QF')">AW3225QF</button>
                 <button class="example-btn" onclick="testModel('U2725QE')">U2725QE</button>
                 <button class="example-btn" onclick="testModel('S2725QC')">S2725QC</button>
+                <br><br>
+                <strong>HP Examples:</strong>
+                <button class="example-btn" onclick="testModel('HP 322pe')">HP 322pe</button>
+                <button class="example-btn" onclick="testModel('HP 324pv')">HP 324pv</button>
+                <button class="example-btn" onclick="testModel('HP 327q')">HP 327q</button>
+                <button class="example-btn" onclick="testModel('HP E24mq')">HP E24mq</button>
+                <button class="example-btn" onclick="testModel('HP E27m G5')">HP E27m G5</button>
             </div>
 
-            <input type="text" id="productInput" placeholder="Enter model (e.g., SE2726D, P2424HT, AW3225QF)">
+            <input type="text" id="productInput" placeholder="Enter model (e.g., SE2726D, HP 322pe, AW3225QF)">
             <button onclick="testProduct()">Test API</button>
 
             <div class="loading" id="loading">
@@ -132,8 +139,8 @@
         <div class="test-section">
             <h3>How the 3-Tier System Works:</h3>
             <ol>
-                <li><strong>TIER 1 (Primary):</strong> Excel Database - Searches dell_monitors_transformed.xlsx (74 Dell monitors)</li>
-                <li><strong>TIER 2 (Fallback):</strong> Cached JSON Files - Checks product-cache/monitor/dell/ directory</li>
+                <li><strong>TIER 1 (Primary):</strong> Excel Database - Searches brand-specific Excel files (Dell: 74 monitors, HP: 38 monitors)</li>
+                <li><strong>TIER 2 (Fallback):</strong> Cached JSON Files - Checks product-cache/monitor/{brand}/ directory</li>
                 <li><strong>TIER 3 (Last Resort):</strong> Web Scraping - Uses SerpAPI + Gemini AI to scrape official websites</li>
             </ol>
         </div>
