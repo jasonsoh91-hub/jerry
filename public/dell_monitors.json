@@ -922,5 +922,29 @@
     "Refresh Rate": "100 Hz",
     "Compatible Ports": "1 HDMI (HDCP 1.4), 1 VGA",
     "Warranty": "3 Years"
+  },
+  {
+    "Full Product Name": "DELL Monitor - SE2425HG",
+    "Model": "SE2425HG",
+    "Brand": "DELL",
+    "Brief Naming": "DELL SE Series LED Monitor",
+    "Size": "\"23.8 Inch\"",
+    "Resolution": "1920 x 1080 FHD",
+    "Response Time": "1ms",
+    "Refresh Rate": "200Hz",
+    "Compatible Ports": "2 HDMI ports, 1 DisplayPort 1.4, 1 Headphone-out port (3.5 mm jack)",
+    "Warranty": "3 Year"
+  },
+  {
+    "Full Product Name": "Dell 27 USB-C Hub Monitor - P2722HE",
+    "Model": "P2722HE",
+    "Brand": "DELL",
+    "Brief Naming": "DELL Pro Series LED Monitor",
+    "Size": "27 Inch",
+    "Resolution": "1920 x 1080 FHD",
+    "Response Time": "5ms",
+    "Refresh Rate": "60Hz",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, 1 DisplayPort Out (MST), 1 USB-C (65W Power Delivery), 4 USB Type-A, 1 RJ-45 Ethernet, Audio Out",
+    "Warranty": "3 Years"
   }
 ]
