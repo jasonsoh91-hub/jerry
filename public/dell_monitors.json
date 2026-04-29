@@ -8,7 +8,7 @@
     "Resolution": "1920 x 1200 WUXGA",
     "Response Time": "7.0ms",
     "Refresh Rate": "",
-    "Compatible Ports": "DisplayPort, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "2 USB-C, 1 DisplayPort",
     "Warranty": "3 Years"
   },
   {
@@ -20,7 +20,7 @@
     "Resolution": "1920 x 1200 WUXGA",
     "Response Time": "5.0ms",
     "Refresh Rate": "",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, 2 USB-C, Ethernet",
     "Warranty": "3 Years"
   },
   {
@@ -32,7 +32,7 @@
     "Resolution": "2560 x 1440 QHD",
     "Response Time": "1.0ms",
     "Refresh Rate": "144Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt",
+    "Compatible Ports": "2 HDMI, 1 DisplayPort",
     "Warranty": "3 Years"
   },
   {
@@ -44,7 +44,7 @@
     "Resolution": "",
     "Response Time": "5.0ms",
     "Refresh Rate": "120Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 2 DisplayPort (1 in, 1 out), USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -56,7 +56,7 @@
     "Resolution": "",
     "Response Time": "5.0ms",
     "Refresh Rate": "",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 2 DisplayPort (1 in, 1 out), USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -68,7 +68,7 @@
     "Resolution": "",
     "Response Time": "5.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 2 DisplayPort (1 in, 1 out), USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -80,7 +80,7 @@
     "Resolution": "",
     "Response Time": "5.0ms",
     "Refresh Rate": "",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 2 DisplayPort (1 in, 1 out), USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -92,7 +92,7 @@
     "Resolution": "",
     "Response Time": "5.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 2 DisplayPort (1 in, 1 out), USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -104,7 +104,7 @@
     "Resolution": "",
     "Response Time": "5.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 2 DisplayPort (1 in, 1 out), USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -128,7 +128,7 @@
     "Resolution": "1920 x 1200 WUXGA",
     "Response Time": "5.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "HDMI, USB-C, VGA, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 1 VGA, 1 USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -140,7 +140,7 @@
     "Resolution": "3840 x 2160 4K UHD",
     "Response Time": "5.0ms",
     "Refresh Rate": "120Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, 1 USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -188,7 +188,7 @@
     "Resolution": "3840 x 2160 4K UHD",
     "Response Time": "5.0ms",
     "Refresh Rate": "120Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt",
+    "Compatible Ports": "2 HDMI, 1 DisplayPort",
     "Warranty": "3 Years"
   },
   {
@@ -212,7 +212,7 @@
     "Resolution": "3840 x 2160 4K UHD",
     "Response Time": "8.0ms",
     "Refresh Rate": "120Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt",
+    "Compatible Ports": "2 HDMI, 1 DisplayPort",
     "Warranty": "3 Years"
   },
   {
@@ -236,7 +236,7 @@
     "Resolution": "3440 x 1440 UWQHD",
     "Response Time": "1.0ms",
     "Refresh Rate": "120Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt",
+    "Compatible Ports": "2 HDMI, 1 DisplayPort",
     "Warranty": "3 Years"
   },
   {
@@ -248,7 +248,7 @@
     "Resolution": "3840 x 2160 4K UHD",
     "Response Time": "",
     "Refresh Rate": "120Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, 1 USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -260,7 +260,7 @@
     "Resolution": "",
     "Response Time": "5.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, VGA, Thunderbolt",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, 1 VGA",
     "Warranty": "3 Years"
   },
   {
@@ -272,7 +272,7 @@
     "Resolution": "2560 x 1440 QHD",
     "Response Time": "8.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, 1 USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -296,7 +296,7 @@
     "Resolution": "3840 x 2160 4K UHD",
     "Response Time": "8.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, 1 USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -308,7 +308,7 @@
     "Resolution": "",
     "Response Time": "8.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, VGA, Thunderbolt",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, 1 VGA",
     "Warranty": "3 Years"
   },
   {
@@ -320,7 +320,7 @@
     "Resolution": "2560 x 1440 QHD",
     "Response Time": "5.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, 1 USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -332,7 +332,7 @@
     "Resolution": "1920 x 1080 FHD",
     "Response Time": "1.0ms",
     "Refresh Rate": "200Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt",
+    "Compatible Ports": "2 HDMI, 1 DisplayPort",
     "Warranty": "3 Years"
   },
   {
@@ -392,7 +392,7 @@
     "Resolution": "",
     "Response Time": "5.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, VGA, Thunderbolt",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, 1 VGA",
     "Warranty": "3 Years"
   },
   {
@@ -404,7 +404,7 @@
     "Resolution": "",
     "Response Time": "1.0ms",
     "Refresh Rate": "144Hz",
-    "Compatible Ports": "HDMI, USB-C, Thunderbolt",
+    "Compatible Ports": "2 HDMI",
     "Warranty": "3 Years"
   },
   {
@@ -416,7 +416,7 @@
     "Resolution": "2560 x 1440 QHD",
     "Response Time": "5.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, 1 USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -428,7 +428,7 @@
     "Resolution": "",
     "Response Time": "5.0ms",
     "Refresh Rate": "",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, 1 USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -440,7 +440,7 @@
     "Resolution": "3840 x 2160 4K UHD",
     "Response Time": "8.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, 1 USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -452,7 +452,7 @@
     "Resolution": "",
     "Response Time": "5.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, VGA, Thunderbolt",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, 1 VGA",
     "Warranty": "3 Years"
   },
   {
@@ -464,7 +464,7 @@
     "Resolution": "",
     "Response Time": "8.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, VGA, Thunderbolt",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, 1 VGA",
     "Warranty": "3 Years"
   },
   {
@@ -512,7 +512,7 @@
     "Resolution": "2560 x 1440 QHD",
     "Response Time": "8.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, 1 USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -524,7 +524,7 @@
     "Resolution": "2560 x 1440 QHD",
     "Response Time": "1.0ms",
     "Refresh Rate": "144Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, 1 USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -548,7 +548,7 @@
     "Resolution": "",
     "Response Time": "1.0ms",
     "Refresh Rate": "144Hz",
-    "Compatible Ports": "HDMI, USB-C, Thunderbolt",
+    "Compatible Ports": "2 HDMI",
     "Warranty": "3 Years"
   },
   {
@@ -560,7 +560,7 @@
     "Resolution": "1920 x 1080 FHD",
     "Response Time": "0.5ms",
     "Refresh Rate": "240Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt",
+    "Compatible Ports": "2 HDMI, 1 DisplayPort",
     "Warranty": "3 Years"
   },
   {
@@ -572,7 +572,7 @@
     "Resolution": "",
     "Response Time": "5.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, VGA, Thunderbolt",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, 1 VGA",
     "Warranty": "3 Years"
   },
   {
@@ -584,7 +584,7 @@
     "Resolution": "3440 x 1440 UWQHD",
     "Response Time": "5.0ms",
     "Refresh Rate": "",
-    "Compatible Ports": "HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 1 USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -596,7 +596,7 @@
     "Resolution": "2560 x 1440 QHD",
     "Response Time": "5.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort",
     "Warranty": "3 Years"
   },
   {
@@ -608,7 +608,7 @@
     "Resolution": "2560 x 1440 QHD",
     "Response Time": "1.0ms",
     "Refresh Rate": "144Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt",
+    "Compatible Ports": "2 HDMI, 1 DisplayPort",
     "Warranty": "3 Years"
   },
   {
@@ -620,7 +620,7 @@
     "Resolution": "",
     "Response Time": "5.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -632,7 +632,7 @@
     "Resolution": "1920 x 1080 FHD",
     "Response Time": "8.0ms",
     "Refresh Rate": "144Hz",
-    "Compatible Ports": "HDMI, USB-C, Thunderbolt",
+    "Compatible Ports": "1 HDMI (HDCP 1.4), 1 VGA",
     "Warranty": "3 Years"
   },
   {
@@ -644,7 +644,7 @@
     "Resolution": "1920 x 1080 FHD",
     "Response Time": "0.5ms",
     "Refresh Rate": "240Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt",
+    "Compatible Ports": "2 HDMI, 1 DisplayPort",
     "Warranty": "3 Years"
   },
   {
@@ -656,7 +656,7 @@
     "Resolution": "1920 x 1080 FHD",
     "Response Time": "4.0ms",
     "Refresh Rate": "144Hz",
-    "Compatible Ports": "HDMI, USB-C, Thunderbolt",
+    "Compatible Ports": "2 HDMI, 1 DisplayPort",
     "Warranty": "3 Years"
   },
   {
@@ -668,7 +668,7 @@
     "Resolution": "",
     "Response Time": "5.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -680,7 +680,7 @@
     "Resolution": "",
     "Response Time": "5.0ms",
     "Refresh Rate": "120Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -692,7 +692,7 @@
     "Resolution": "",
     "Response Time": "5.0ms",
     "Refresh Rate": "120Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort",
     "Warranty": "3 Years"
   },
   {
@@ -704,7 +704,7 @@
     "Resolution": "",
     "Response Time": "5.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -716,7 +716,7 @@
     "Resolution": "",
     "Response Time": "5.0ms",
     "Refresh Rate": "120Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -752,7 +752,7 @@
     "Resolution": "",
     "Response Time": "5.0ms",
     "Refresh Rate": "120Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 2 DisplayPort (1 in, 1 out), USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -776,7 +776,7 @@
     "Resolution": "",
     "Response Time": "5.0ms",
     "Refresh Rate": "120Hz",
-    "Compatible Ports": "DisplayPort, HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 2 DisplayPort (1 in, 1 out), USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -812,7 +812,7 @@
     "Resolution": "1920 x 1080 FHD",
     "Response Time": "5.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "HDMI, USB-C, VGA, Thunderbolt",
+    "Compatible Ports": "1 HDMI (HDCP 1.4), 1 VGA",
     "Warranty": "3 Years"
   },
   {
@@ -824,7 +824,7 @@
     "Resolution": "1920 x 1080 FHD",
     "Response Time": "5.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "HDMI, USB-C, VGA, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 1 VGA, 1 USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -836,7 +836,7 @@
     "Resolution": "1920 x 1200 WUXGA",
     "Response Time": "5.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 1 USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -860,7 +860,7 @@
     "Resolution": "1920 x 1200 WUXGA",
     "Response Time": "5.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "HDMI, USB-C, VGA, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 1 VGA, 1 USB-C",
     "Warranty": "3 Years"
   },
   {
@@ -872,7 +872,7 @@
     "Resolution": "1920 x 1200 WUXGA",
     "Response Time": "5.0ms",
     "Refresh Rate": "100Hz",
-    "Compatible Ports": "HDMI, USB-C, Thunderbolt, Ethernet",
+    "Compatible Ports": "1 HDMI, 1 DisplayPort, 1 USB-C",
     "Warranty": "3 Years"
   },
   {
