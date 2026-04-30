@@ -175,8 +175,10 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
 
   const updateField = (field: keyof ProductInfo, value: string) => {
     const updated = { ...productInfo, [field]: value };
+    console.log('🔄 Field updated:', { field, value, updatedInfo: updated });
     setProductInfo(updated);
     onInfoExtracted(updated);
+    console.log('✅ onInfoExtracted called with:', updated);
   };
 
   return (
@@ -352,7 +354,10 @@ export default function ProductInfoExtractor({ onInfoExtracted }: { onInfoExtrac
             <input
               type="text"
               value={productInfo.warranty}
-              onChange={(e) => updateField('warranty', e.target.value)}
+              onChange={(e) => {
+                console.log('⌨️ Warranty input changed:', e.target.value);
+                updateField('warranty', e.target.value);
+              }}
               placeholder="e.g., 3 Years"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             />

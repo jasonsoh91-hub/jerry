@@ -114,7 +114,14 @@ export async function generateMockups(
             hasProductInfo: !!configWithProductInfo.productInfo,
             model: configWithProductInfo.productInfo?.model,
             brand: configWithProductInfo.productInfo?.brand,
-            briefName: configWithProductInfo.productInfo?.briefName
+            briefName: configWithProductInfo.productInfo?.briefName,
+            warranty: configWithProductInfo.productInfo?.warranty
+          });
+          console.log('📋 Full productInfo object:', productInfo);
+          console.log('🛡️ WARRANTY FIELD CHECK:', {
+            hasWarranty: !!productInfo?.warranty,
+            warrantyValue: productInfo?.warranty,
+            warrantyType: typeof productInfo?.warranty
           });
 
           const canvas = await compositeProductIntoFrame(

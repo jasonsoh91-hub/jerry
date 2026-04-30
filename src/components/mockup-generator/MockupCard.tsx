@@ -518,8 +518,8 @@ export default function MockupCard({ mockup }: MockupCardProps) {
 
     console.log('🎨 Applying text overlay settings:', textOverlaySettings, { skipProductRecomposite });
 
-    // Import the drawProductInfoOverlay, drawPortIconsOverlay, and drawBrandLogoOverlay functions
-    const { drawProductInfoOverlay, drawPortIconsOverlay, drawBrandLogoOverlay } = await import('@/lib/imageProcessing');
+    // Import the drawProductInfoOverlay, drawPortIconsOverlay, drawWarrantyIconOverlay, and drawBrandLogoOverlay functions
+    const { drawProductInfoOverlay, drawPortIconsOverlay, drawWarrantyIconOverlay, drawBrandLogoOverlay } = await import('@/lib/imageProcessing');
 
     let newCanvas: HTMLCanvasElement;
     let ctx: CanvasRenderingContext2D;
@@ -575,6 +575,11 @@ export default function MockupCard({ mockup }: MockupCardProps) {
     console.log('🔌 Re-applying port icons overlay...');
     await drawPortIconsOverlay(ctx, newCanvas, mockup.config.productInfo);
     console.log('✅ Port icons re-applied successfully');
+
+    // Also apply warranty icon overlay when re-applying text overlays
+    console.log('🛡️ Re-applying warranty icon overlay...');
+    await drawWarrantyIconOverlay(ctx, newCanvas, mockup.config.productInfo);
+    console.log('✅ Warranty icon re-applied successfully');
 
     // Also apply brand logo overlay when re-applying text overlays
     console.log('🏢 Re-applying brand logo overlay...');

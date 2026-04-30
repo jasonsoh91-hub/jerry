@@ -1213,6 +1213,104 @@ export async function drawPortIconsOverlay(
 }
 
 /**
+ * Draw warranty icon overlay based on warranty information from product info
+ * Warranty icons are loaded from /warranty folder and positioned 50px below port icons
+ */
+export async function drawWarrantyIconOverlay(
+  ctx: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement,
+  productInfo: any
+): Promise<void> {
+  console.log('🛡️ Warranty Icon Overlay - Received productInfo:', {
+    hasProductInfo: !!productInfo,
+    warranty: productInfo?.warranty,
+    fullProductInfo: productInfo
+  });
+
+  if (!productInfo || !productInfo.warranty) {
+    console.log('⚠️ No warranty information available, skipping warranty icon');
+    return;
+  }
+
+  const warrantyText = productInfo.warranty.toLowerCase().trim();
+  console.log('🔍 Checking for warranty in:', productInfo.warranty, '(lowercased:', warrantyText, ')');
+
+  // Map warranty text to icon file names
+  let warrantyIconFile: string | null = null;
+
+  if (warrantyText.includes('1 year') || warrantyText.includes('1-year')) {
+    warrantyIconFile = '1 year.png';
+  } else if (warrantyText.includes('2 year') || warrantyText.includes('2-year')) {
+    warrantyIconFile = '2 year.png';
+  } else if (warrantyText.includes('3 year') || warrantyText.includes('3-year') || warrantyText.includes('3 years')) {
+    warrantyIconFile = '3 year.png';
+  } else {
+    console.log(`⚠️ No warranty icon found for warranty text: "${productInfo.warranty}"`);
+    return;
+  }
+
+  console.log(`✅ Found warranty icon: ${warrantyIconFile}`);
+
+  // Warranty icon settings - centered within X:15 to X:640 (same as ports)
+  // Positioned 50px below port icons (port icons end at Y:905 + 102 = 1007, so start at 1057)
+  const xMin = 15;
+  const xMax = 640;
+  const startY = 1057; // 50px below port icons (905 + 102 + 50 = 1057)
+  const iconSize = 360; // Scaled to 4.5x size for good visibility (80px -> 360px)
+
+  // Calculate centered X position
+  const availableWidth = xMax - xMin;
+  const centerX = xMin + availableWidth / 2;
+  const iconX = centerX - iconSize / 2;
+  const iconY = startY;
+
+  console.log(`📐 Warranty icon layout: size=${iconSize}px, centered at X=${centerX.toFixed(0)}, Y=${iconY}`);
+
+  const iconPath = `/warranty/${warrantyIconFile}`;
+
+  try {
+    // Load warranty icon
+    const warrantyImg = await loadImage(iconPath);
+
+    // Calculate proportional scaling to maintain aspect ratio
+    const aspectRatio = warrantyImg.width / warrantyImg.height;
+    let drawWidth = iconSize;
+    let drawHeight = iconSize;
+
+    // Scale based on aspect ratio (fit within iconSize x iconSize)
+    if (aspectRatio > 1) {
+      // Landscape: width is the limiting factor
+      drawWidth = iconSize;
+      drawHeight = iconSize / aspectRatio;
+    } else {
+      // Portrait or square: height is the limiting factor
+      drawHeight = iconSize;
+      drawWidth = iconSize * aspectRatio;
+    }
+
+    // Draw warranty icon with subtle shadow for better visibility
+    ctx.save();
+
+    // Shadow
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+
+    // Draw icon with proportional scaling (no distortion)
+    ctx.drawImage(warrantyImg, iconX, iconY, drawWidth, drawHeight);
+
+    ctx.restore();
+
+    console.log(`✅ Drew warranty icon "${warrantyIconFile}" at X:${iconX.toFixed(0)}, Y:${iconY} (proportional: ${drawWidth.toFixed(0)}x${drawHeight.toFixed(0)})`);
+  } catch (error) {
+    console.error(`❌ Failed to load warranty icon from ${iconPath}:`, error);
+  }
+
+  console.log('✅ Warranty icon overlay complete');
+}
+
+/**
  * Draw brand logo overlay based on brand name from product info
  * Logos are loaded from /logo folder and positioned at specified coordinates
  */
@@ -1499,7 +1597,12 @@ export async function compositeProductIntoFrame(
     await drawPortIconsOverlay(ctx, canvas, config.productInfo);
     console.log('✅ Port icons overlay applied');
 
-    // 6.6. Draw brand logo overlay
+    // 6.6. Draw warranty icon overlay (50px below port icons)
+    console.log('🛡️ Adding warranty icon overlay...');
+    await drawWarrantyIconOverlay(ctx, canvas, config.productInfo);
+    console.log('✅ Warranty icon overlay applied');
+
+    // 6.7. Draw brand logo overlay
     console.log('🏢 Adding brand logo overlay...');
     await drawBrandLogoOverlay(ctx, canvas, config.productInfo);
     console.log('✅ Brand logo overlay applied');

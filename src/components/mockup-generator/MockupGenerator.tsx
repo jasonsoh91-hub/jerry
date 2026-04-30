@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import ProductUploader, { ProductImages } from './ProductUploader';
 import ProductInfoExtractor from './ProductInfoExtractor';
 import GenerateButton from './GenerateButton';
@@ -13,6 +13,11 @@ export default function MockupGenerator() {
     front: null
   });
   const [productInfo, setProductInfo] = useState<ProductInfo | null>(null);
+
+  // Debug: Log when productInfo changes
+  React.useEffect(() => {
+    console.log('🔄 ProductInfo state changed:', productInfo);
+  }, [productInfo]);
   const [frameImages, setFrameImages] = useState<File[]>([]);
   const [productAreaConfig, setProductAreaConfig] = useState<{ x: number; y: number; width: number; height: number; scale: number } | null>(null);
   const [mockups, setMockups] = useState<GeneratedMockup[]>([]);
@@ -55,6 +60,14 @@ export default function MockupGenerator() {
     setIsGenerating(true);
     setError(null);
     setMockups([]);
+
+    console.log('🚀 Starting mockup generation with productInfo:', productInfo);
+    console.log('🛡️ CRITICAL WARRANTY CHECK:', {
+      warranty: productInfo?.warranty,
+      warrantyType: typeof productInfo?.warranty,
+      warrantyLength: productInfo?.warranty?.length,
+      exactValue: `"${productInfo?.warranty}"`
+    });
 
     try {
       const generated = await generateMockups(
